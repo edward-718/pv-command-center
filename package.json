@@ -10,7 +10,10 @@
     "preview": "vite preview",
     "check": "tsc --noEmit",
     "server:dev": "nodemon",
-    "dev": "concurrently \"npm run client:dev\" \"npm run server:dev\""
+    "server:start": "tsx api/server.ts",
+    "server:build": "tsc -p api/tsconfig.json",
+    "dev": "concurrently \"npm run client:dev\" \"npm run server:dev\"",
+    "reset-data": "rm -rf data/*.json"
   },
   "dependencies": {
     "clsx": "^2.1.1",
