@@ -59,15 +59,15 @@ class ApiClient {
   }
 
   async post<T>(path: string, body: unknown): Promise<T> {
-    return this.request<T>('POST', path, { body });
+    return this.request<T>('POST', path, { body: body as BodyInit | undefined });
   }
 
   async put<T>(path: string, body?: unknown): Promise<T> {
-    return this.request<T>('PUT', path, { body });
+    return this.request<T>('PUT', path, { body: body as BodyInit | undefined });
   }
 
   async patch<T>(path: string, body: unknown): Promise<T> {
-    return this.request<T>('PATCH', path, { body });
+    return this.request<T>('PATCH', path, { body: body as BodyInit | undefined });
   }
 
   async delete<T>(path: string): Promise<T> {
