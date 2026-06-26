@@ -54,14 +54,16 @@ npm run dev
 | **CRO 供应商** | 仅能访问被分配的任务，受限视图 |
 | **系统管理员** | 管理组织、角色、模板、提醒规则 |
 
-## 📦 Gitee Pages 一键预览
+## 📦 GitHub Pages 部署
 
 ```bash
 # 先构建静态产物到 dist 目录
 npm install
 npm run build
-# 然后：仓库 → 服务 → Gitee Pages → 部署目录填 dist → 启动
+# 然后：仓库 → Settings → Pages → Source: GitHub Actions → 保存
 ```
+
+或者使用 Vercel / Netlify 直接导入仓库即可。
 
 ## 🛠 技术栈
 
