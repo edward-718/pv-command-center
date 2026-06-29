@@ -13,7 +13,12 @@
     "server:start": "tsx api/server.ts",
     "server:build": "tsc -p api/tsconfig.json",
     "dev": "concurrently \"npm run client:dev\" \"npm run server:dev\"",
-    "reset-data": "rm -rf data/*.json"
+    "start": "node api/dist/server.js",
+    "reset-data": "rm -rf data/*.json",
+    "docker:build": "docker build -t pv-command-center .",
+    "docker:run": "docker run -p 3001:3001 -v $(pwd)/data:/app/data pv-command-center",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
   },
   "dependencies": {
     "clsx": "^2.1.1",
