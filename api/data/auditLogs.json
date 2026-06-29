@@ -1,0 +1,771 @@
+[
+  {
+    "id": "l-1782704700613",
+    "actorId": "u-001",
+    "objectType": "PROJECT",
+    "objectId": "p-1782704700558",
+    "action": "归档项目",
+    "before": {
+      "status": "ACTIVE"
+    },
+    "after": {
+      "status": "CLOSED"
+    },
+    "createdAt": "2026-06-29T03:45:00.613Z"
+  },
+  {
+    "id": "l-1782704700578",
+    "actorId": "u-001",
+    "objectType": "ATTACHMENT",
+    "objectId": "a-1782704700578",
+    "taskId": "t-1782704700566",
+    "action": "上传附件 测试文件.pdf",
+    "before": null,
+    "after": {
+      "id": "a-1782704700578",
+      "taskId": "t-1782704700566",
+      "fileName": "测试文件.pdf",
+      "size": 0,
+      "type": "application/octet-stream",
+      "version": 1,
+      "uploaderId": "u-001",
+      "evidenceKey": "原始报告表",
+      "isDeleted": false,
+      "createdAt": "2026-06-29T03:45:00.578Z"
+    },
+    "createdAt": "2026-06-29T03:45:00.578Z"
+  },
+  {
+    "id": "l-1782704700575",
+    "actorId": "u-001",
+    "objectType": "TASK",
+    "objectId": "t-1782704700566",
+    "action": "任务分配变更 {\"assigneeId\":null,\"reviewerId\":null} → {\"assigneeId\":\"u-processor-001\",\"reviewerId\":null}",
+    "before": {
+      "assigneeId": null,
+      "reviewerId": null
+    },
+    "after": {
+      "assigneeId": "u-processor-001",
+      "reviewerId": null
+    },
+    "createdAt": "2026-06-29T03:45:00.575Z"
+  },
+  {
+    "id": "l-1782704700569",
+    "actorId": "u-001",
+    "objectType": "TASK",
+    "objectId": "t-1782704700566",
+    "action": "状态变更 NOT_STARTED → IN_PROGRESS",
+    "before": {
+      "id": "t-1782704700566",
+      "projectId": "p-1782704700558",
+      "title": "测试任务-证据校验",
+      "description": "测试任务的完整描述",
+      "type": "DEFAULT",
+      "status": "NOT_STARTED",
+      "priority": "P2",
+      "riskLevel": "MEDIUM",
+      "assigneeId": null,
+      "reviewerId": null,
+      "dueAt": "2026-07-06T03:45:00.565Z",
+      "caseId": null,
+      "requiredEvidence": [
+        "原始报告表",
+        "患者基本信息"
+      ],
+      "evidenceUploaded": [],
+      "severity": null,
+      "seriousness": null,
+      "dayZero": null,
+      "medicalOpinion": null,
+      "followUpStatus": "NONE",
+      "submitNote": null,
+      "version": 1,
+      "createdAt": "2026-06-29T03:45:00.566Z",
+      "updatedAt": "2026-06-29T03:45:00.566Z"
+    },
+    "after": {
+      "id": "t-1782704700566",
+      "projectId": "p-1782704700558",
+      "title": "测试任务-证据校验",
+      "description": "测试任务的完整描述",
+      "type": "DEFAULT",
+      "status": "IN_PROGRESS",
+      "priority": "P2",
+      "riskLevel": "MEDIUM",
+      "assigneeId": "u-processor-001",
+      "reviewerId": null,
+      "dueAt": "2026-07-06T03:45:00.565Z",
+      "caseId": null,
+      "requiredEvidence": [
+        "原始报告表",
+        "患者基本信息"
+      ],
+      "evidenceUploaded": [
+        "原始报告表"
+      ],
+      "severity": null,
+      "seriousness": null,
+      "dayZero": null,
+      "medicalOpinion": null,
+      "followUpStatus": "NONE",
+      "submitNote": null,
+      "version": 2,
+      "createdAt": "2026-06-29T03:45:00.566Z",
+      "updatedAt": "2026-06-29T03:45:00.575Z"
+    },
+    "createdAt": "2026-06-29T03:45:00.569Z"
+  },
+  {
+    "id": "l-1782704700566",
+    "actorId": "u-001",
+    "objectType": "TASK",
+    "objectId": "t-1782704700566",
+    "action": "创建任务",
+    "before": null,
+    "after": {
+      "id": "t-1782704700566",
+      "projectId": "p-1782704700558",
+      "title": "测试任务-证据校验",
+      "description": "测试任务的完整描述",
+      "type": "DEFAULT",
+      "status": "IN_PROGRESS",
+      "priority": "P2",
+      "riskLevel": "MEDIUM",
+      "assigneeId": "u-processor-001",
+      "reviewerId": null,
+      "dueAt": "2026-07-06T03:45:00.565Z",
+      "caseId": null,
+      "requiredEvidence": [
+        "原始报告表",
+        "患者基本信息"
+      ],
+      "evidenceUploaded": [
+        "原始报告表"
+      ],
+      "severity": null,
+      "seriousness": null,
+      "dayZero": null,
+      "medicalOpinion": null,
+      "followUpStatus": "NONE",
+      "submitNote": null,
+      "version": 2,
+      "createdAt": "2026-06-29T03:45:00.566Z",
+      "updatedAt": "2026-06-29T03:45:00.575Z"
+    },
+    "createdAt": "2026-06-29T03:45:00.566Z"
+  },
+  {
+    "id": "l-1782704700563",
+    "actorId": "u-001",
+    "objectType": "PROJECT",
+    "objectId": "p-1782704700558",
+    "action": "项目状态变更 ACTIVE → ACTIVE",
+    "before": {
+      "status": "ACTIVE"
+    },
+    "after": {
+      "status": "ACTIVE"
+    },
+    "createdAt": "2026-06-29T03:45:00.563Z"
+  },
+  {
+    "id": "l-1782704700561",
+    "actorId": "u-001",
+    "objectType": "PROJECT",
+    "objectId": "p-1782704700558",
+    "action": "更新项目信息",
+    "before": {
+      "id": "p-1782704700558",
+      "name": "测试项目-全面测试",
+      "code": "TEST-FULL-700557",
+      "type": "ICSR",
+      "product": "测试药品A",
+      "region": "",
+      "description": "这是一个全面测试项目",
+      "templateId": "tpl-icsr",
+      "ownerId": "u-001",
+      "status": "ACTIVE",
+      "startDate": "2026-06-29T03:45:00.558Z",
+      "endDate": null,
+      "memberIds": [
+        "u-001"
+      ],
+      "progress": 0,
+      "createdAt": "2026-06-29T03:45:00.558Z",
+      "updatedAt": "2026-06-29T03:45:00.558Z"
+    },
+    "after": {
+      "id": "p-1782704700558",
+      "name": "测试项目-全面测试",
+      "code": "TEST-FULL-700557",
+      "type": "ICSR",
+      "product": "测试药品A",
+      "region": "",
+      "description": "更新后的描述",
+      "templateId": "tpl-icsr",
+      "ownerId": "u-001",
+      "status": "CLOSED",
+      "startDate": "2026-06-29T03:45:00.558Z",
+      "endDate": null,
+      "memberIds": [
+        "u-001"
+      ],
+      "progress": 0,
+      "createdAt": "2026-06-29T03:45:00.558Z",
+      "updatedAt": "2026-06-29T03:45:00.613Z",
+      "deletedAt": "2026-06-29T03:45:00.613Z",
+      "deletedBy": "u-001"
+    },
+    "createdAt": "2026-06-29T03:45:00.561Z"
+  },
+  {
+    "id": "l-1782704700558",
+    "actorId": "u-001",
+    "objectType": "PROJECT",
+    "objectId": "p-1782704700558",
+    "action": "创建项目 测试项目-全面测试",
+    "before": null,
+    "after": {
+      "id": "p-1782704700558",
+      "name": "测试项目-全面测试",
+      "code": "TEST-FULL-700557",
+      "type": "ICSR",
+      "product": "测试药品A",
+      "region": "",
+      "description": "更新后的描述",
+      "templateId": "tpl-icsr",
+      "ownerId": "u-001",
+      "status": "CLOSED",
+      "startDate": "2026-06-29T03:45:00.558Z",
+      "endDate": null,
+      "memberIds": [
+        "u-001"
+      ],
+      "progress": 0,
+      "createdAt": "2026-06-29T03:45:00.558Z",
+      "updatedAt": "2026-06-29T03:45:00.613Z",
+      "deletedAt": "2026-06-29T03:45:00.613Z",
+      "deletedBy": "u-001"
+    },
+    "createdAt": "2026-06-29T03:45:00.558Z"
+  },
+  {
+    "id": "l-1782704588325",
+    "actorId": "u-001",
+    "objectType": "ATTACHMENT",
+    "objectId": "a-1782704588325",
+    "taskId": "t-1782704588315",
+    "action": "上传附件 测试文件.pdf",
+    "before": null,
+    "after": {
+      "id": "a-1782704588325",
+      "taskId": "t-1782704588315",
+      "fileName": "测试文件.pdf",
+      "size": 0,
+      "type": "application/octet-stream",
+      "version": 1,
+      "uploaderId": "u-001",
+      "evidenceKey": "原始报告表",
+      "isDeleted": false,
+      "createdAt": "2026-06-29T03:43:08.325Z"
+    },
+    "createdAt": "2026-06-29T03:43:08.325Z"
+  },
+  {
+    "id": "l-1782704588322",
+    "actorId": "u-001",
+    "objectType": "TASK",
+    "objectId": "t-1782704588315",
+    "action": "任务分配变更 {\"assigneeId\":null,\"reviewerId\":null} → {\"assigneeId\":\"u-processor-001\",\"reviewerId\":null}",
+    "before": {
+      "assigneeId": null,
+      "reviewerId": null
+    },
+    "after": {
+      "assigneeId": "u-processor-001",
+      "reviewerId": null
+    },
+    "createdAt": "2026-06-29T03:43:08.322Z"
+  },
+  {
+    "id": "l-1782704588316",
+    "actorId": "u-001",
+    "objectType": "TASK",
+    "objectId": "t-1782704588315",
+    "action": "状态变更 NOT_STARTED → IN_PROGRESS",
+    "before": {
+      "id": "t-1782704588315",
+      "projectId": "p-1782704588310",
+      "title": "测试任务-证据校验",
+      "description": "测试任务的完整描述",
+      "type": "DEFAULT",
+      "status": "NOT_STARTED",
+      "priority": "P2",
+      "riskLevel": "MEDIUM",
+      "assigneeId": null,
+      "reviewerId": null,
+      "dueAt": "2026-07-06T03:43:08.314Z",
+      "caseId": null,
+      "requiredEvidence": [
+        "原始报告表",
+        "患者基本信息"
+      ],
+      "evidenceUploaded": [],
+      "severity": null,
+      "seriousness": null,
+      "dayZero": null,
+      "medicalOpinion": null,
+      "followUpStatus": "NONE",
+      "submitNote": null,
+      "version": 1,
+      "createdAt": "2026-06-29T03:43:08.315Z",
+      "updatedAt": "2026-06-29T03:43:08.315Z"
+    },
+    "after": {
+      "id": "t-1782704588315",
+      "projectId": "p-1782704588310",
+      "title": "测试任务-证据校验",
+      "description": "测试任务的完整描述",
+      "type": "DEFAULT",
+      "status": "IN_PROGRESS",
+      "priority": "P2",
+      "riskLevel": "MEDIUM",
+      "assigneeId": "u-processor-001",
+      "reviewerId": null,
+      "dueAt": "2026-07-06T03:43:08.314Z",
+      "caseId": null,
+      "requiredEvidence": [
+        "原始报告表",
+        "患者基本信息"
+      ],
+      "evidenceUploaded": [
+        "原始报告表"
+      ],
+      "severity": null,
+      "seriousness": null,
+      "dayZero": null,
+      "medicalOpinion": null,
+      "followUpStatus": "NONE",
+      "submitNote": null,
+      "version": 2,
+      "createdAt": "2026-06-29T03:43:08.315Z",
+      "updatedAt": "2026-06-29T03:43:08.322Z"
+    },
+    "createdAt": "2026-06-29T03:43:08.316Z"
+  },
+  {
+    "id": "l-1782704588315",
+    "actorId": "u-001",
+    "objectType": "TASK",
+    "objectId": "t-1782704588315",
+    "action": "创建任务",
+    "before": null,
+    "after": {
+      "id": "t-1782704588315",
+      "projectId": "p-1782704588310",
+      "title": "测试任务-证据校验",
+      "description": "测试任务的完整描述",
+      "type": "DEFAULT",
+      "status": "IN_PROGRESS",
+      "priority": "P2",
+      "riskLevel": "MEDIUM",
+      "assigneeId": "u-processor-001",
+      "reviewerId": null,
+      "dueAt": "2026-07-06T03:43:08.314Z",
+      "caseId": null,
+      "requiredEvidence": [
+        "原始报告表",
+        "患者基本信息"
+      ],
+      "evidenceUploaded": [
+        "原始报告表"
+      ],
+      "severity": null,
+      "seriousness": null,
+      "dayZero": null,
+      "medicalOpinion": null,
+      "followUpStatus": "NONE",
+      "submitNote": null,
+      "version": 2,
+      "createdAt": "2026-06-29T03:43:08.315Z",
+      "updatedAt": "2026-06-29T03:43:08.322Z"
+    },
+    "createdAt": "2026-06-29T03:43:08.315Z"
+  },
+  {
+    "id": "l-1782704588313",
+    "actorId": "u-001",
+    "objectType": "PROJECT",
+    "objectId": "p-1782704588310",
+    "action": "项目状态变更 ACTIVE → ACTIVE",
+    "before": {
+      "status": "ACTIVE"
+    },
+    "after": {
+      "status": "ACTIVE"
+    },
+    "createdAt": "2026-06-29T03:43:08.313Z"
+  },
+  {
+    "id": "l-1782704588312",
+    "actorId": "u-001",
+    "objectType": "PROJECT",
+    "objectId": "p-1782704588310",
+    "action": "更新项目信息",
+    "before": {
+      "id": "p-1782704588310",
+      "name": "测试项目-全面测试",
+      "code": "TEST-FULL-588310",
+      "type": "ICSR",
+      "product": "测试药品A",
+      "region": "",
+      "description": "这是一个全面测试项目",
+      "templateId": "tpl-icsr",
+      "ownerId": "u-001",
+      "status": "ACTIVE",
+      "startDate": "2026-06-29T03:43:08.310Z",
+      "endDate": null,
+      "memberIds": [
+        "u-001"
+      ],
+      "progress": 0,
+      "createdAt": "2026-06-29T03:43:08.310Z",
+      "updatedAt": "2026-06-29T03:43:08.310Z"
+    },
+    "after": {
+      "id": "p-1782704588310",
+      "name": "测试项目-全面测试",
+      "code": "TEST-FULL-588310",
+      "type": "ICSR",
+      "product": "测试药品A",
+      "region": "",
+      "description": "更新后的描述",
+      "templateId": "tpl-icsr",
+      "ownerId": "u-001",
+      "status": "ACTIVE",
+      "startDate": "2026-06-29T03:43:08.310Z",
+      "endDate": null,
+      "memberIds": [
+        "u-001"
+      ],
+      "progress": 0,
+      "createdAt": "2026-06-29T03:43:08.310Z",
+      "updatedAt": "2026-06-29T03:43:08.313Z"
+    },
+    "createdAt": "2026-06-29T03:43:08.312Z"
+  },
+  {
+    "id": "l-1782704588310",
+    "actorId": "u-001",
+    "objectType": "PROJECT",
+    "objectId": "p-1782704588310",
+    "action": "创建项目 测试项目-全面测试",
+    "before": null,
+    "after": {
+      "id": "p-1782704588310",
+      "name": "测试项目-全面测试",
+      "code": "TEST-FULL-588310",
+      "type": "ICSR",
+      "product": "测试药品A",
+      "region": "",
+      "description": "更新后的描述",
+      "templateId": "tpl-icsr",
+      "ownerId": "u-001",
+      "status": "ACTIVE",
+      "startDate": "2026-06-29T03:43:08.310Z",
+      "endDate": null,
+      "memberIds": [
+        "u-001"
+      ],
+      "progress": 0,
+      "createdAt": "2026-06-29T03:43:08.310Z",
+      "updatedAt": "2026-06-29T03:43:08.313Z"
+    },
+    "createdAt": "2026-06-29T03:43:08.310Z"
+  },
+  {
+    "id": "l-1782704547093",
+    "actorId": "u-001",
+    "objectType": "TASK",
+    "objectId": "t-1782704547089",
+    "action": "状态变更 NOT_STARTED → IN_PROGRESS",
+    "before": {
+      "id": "t-1782704547089",
+      "projectId": "p-1782704547082",
+      "title": "测试任务-证据校验",
+      "description": "测试任务的完整描述",
+      "type": "DEFAULT",
+      "status": "NOT_STARTED",
+      "priority": "P2",
+      "riskLevel": "MEDIUM",
+      "assigneeId": null,
+      "reviewerId": null,
+      "dueAt": "2026-07-06T03:42:27.088Z",
+      "caseId": null,
+      "requiredEvidence": [
+        "原始报告表",
+        "患者基本信息"
+      ],
+      "evidenceUploaded": [],
+      "severity": null,
+      "seriousness": null,
+      "dayZero": null,
+      "medicalOpinion": null,
+      "followUpStatus": "NONE",
+      "submitNote": null,
+      "version": 1,
+      "createdAt": "2026-06-29T03:42:27.089Z",
+      "updatedAt": "2026-06-29T03:42:27.089Z"
+    },
+    "after": {
+      "id": "t-1782704547089",
+      "projectId": "p-1782704547082",
+      "title": "测试任务-证据校验",
+      "description": "测试任务的完整描述",
+      "type": "DEFAULT",
+      "status": "IN_PROGRESS",
+      "priority": "P2",
+      "riskLevel": "MEDIUM",
+      "assigneeId": null,
+      "reviewerId": null,
+      "dueAt": "2026-07-06T03:42:27.088Z",
+      "caseId": null,
+      "requiredEvidence": [
+        "原始报告表",
+        "患者基本信息"
+      ],
+      "evidenceUploaded": [],
+      "severity": null,
+      "seriousness": null,
+      "dayZero": null,
+      "medicalOpinion": null,
+      "followUpStatus": "NONE",
+      "submitNote": null,
+      "version": 2,
+      "createdAt": "2026-06-29T03:42:27.089Z",
+      "updatedAt": "2026-06-29T03:42:27.093Z"
+    },
+    "createdAt": "2026-06-29T03:42:27.093Z"
+  },
+  {
+    "id": "l-1782704547089",
+    "actorId": "u-001",
+    "objectType": "TASK",
+    "objectId": "t-1782704547089",
+    "action": "创建任务",
+    "before": null,
+    "after": {
+      "id": "t-1782704547089",
+      "projectId": "p-1782704547082",
+      "title": "测试任务-证据校验",
+      "description": "测试任务的完整描述",
+      "type": "DEFAULT",
+      "status": "IN_PROGRESS",
+      "priority": "P2",
+      "riskLevel": "MEDIUM",
+      "assigneeId": null,
+      "reviewerId": null,
+      "dueAt": "2026-07-06T03:42:27.088Z",
+      "caseId": null,
+      "requiredEvidence": [
+        "原始报告表",
+        "患者基本信息"
+      ],
+      "evidenceUploaded": [],
+      "severity": null,
+      "seriousness": null,
+      "dayZero": null,
+      "medicalOpinion": null,
+      "followUpStatus": "NONE",
+      "submitNote": null,
+      "version": 2,
+      "createdAt": "2026-06-29T03:42:27.089Z",
+      "updatedAt": "2026-06-29T03:42:27.093Z"
+    },
+    "createdAt": "2026-06-29T03:42:27.089Z"
+  },
+  {
+    "id": "l-1782704547086",
+    "actorId": "u-001",
+    "objectType": "PROJECT",
+    "objectId": "p-1782704547082",
+    "action": "项目状态变更 ACTIVE → ACTIVE",
+    "before": {
+      "status": "ACTIVE"
+    },
+    "after": {
+      "status": "ACTIVE"
+    },
+    "createdAt": "2026-06-29T03:42:27.086Z"
+  },
+  {
+    "id": "l-1782704547085",
+    "actorId": "u-001",
+    "objectType": "PROJECT",
+    "objectId": "p-1782704547082",
+    "action": "更新项目信息",
+    "before": {
+      "id": "p-1782704547082",
+      "name": "测试项目-全面测试",
+      "code": "TEST-FULL-547082",
+      "type": "ICSR",
+      "product": "测试药品A",
+      "region": "",
+      "description": "这是一个全面测试项目",
+      "templateId": "tpl-icsr",
+      "ownerId": "u-001",
+      "status": "ACTIVE",
+      "startDate": "2026-06-29T03:42:27.082Z",
+      "endDate": null,
+      "memberIds": [
+        "u-001"
+      ],
+      "progress": 0,
+      "createdAt": "2026-06-29T03:42:27.082Z",
+      "updatedAt": "2026-06-29T03:42:27.082Z"
+    },
+    "after": {
+      "id": "p-1782704547082",
+      "name": "测试项目-全面测试",
+      "code": "TEST-FULL-547082",
+      "type": "ICSR",
+      "product": "测试药品A",
+      "region": "",
+      "description": "更新后的描述",
+      "templateId": "tpl-icsr",
+      "ownerId": "u-001",
+      "status": "ACTIVE",
+      "startDate": "2026-06-29T03:42:27.082Z",
+      "endDate": null,
+      "memberIds": [
+        "u-001"
+      ],
+      "progress": 0,
+      "createdAt": "2026-06-29T03:42:27.082Z",
+      "updatedAt": "2026-06-29T03:42:27.086Z"
+    },
+    "createdAt": "2026-06-29T03:42:27.085Z"
+  },
+  {
+    "id": "l-1782704547082",
+    "actorId": "u-001",
+    "objectType": "PROJECT",
+    "objectId": "p-1782704547082",
+    "action": "创建项目 测试项目-全面测试",
+    "before": null,
+    "after": {
+      "id": "p-1782704547082",
+      "name": "测试项目-全面测试",
+      "code": "TEST-FULL-547082",
+      "type": "ICSR",
+      "product": "测试药品A",
+      "region": "",
+      "description": "更新后的描述",
+      "templateId": "tpl-icsr",
+      "ownerId": "u-001",
+      "status": "ACTIVE",
+      "startDate": "2026-06-29T03:42:27.082Z",
+      "endDate": null,
+      "memberIds": [
+        "u-001"
+      ],
+      "progress": 0,
+      "createdAt": "2026-06-29T03:42:27.082Z",
+      "updatedAt": "2026-06-29T03:42:27.086Z"
+    },
+    "createdAt": "2026-06-29T03:42:27.082Z"
+  },
+  {
+    "id": "l-1782704491292",
+    "actorId": "u-001",
+    "objectType": "PROJECT",
+    "objectId": "p-1782704491289",
+    "action": "项目状态变更 ACTIVE → ACTIVE",
+    "before": {
+      "status": "ACTIVE"
+    },
+    "after": {
+      "status": "ACTIVE"
+    },
+    "createdAt": "2026-06-29T03:41:31.292Z"
+  },
+  {
+    "id": "l-1782704491291",
+    "actorId": "u-001",
+    "objectType": "PROJECT",
+    "objectId": "p-1782704491289",
+    "action": "更新项目信息",
+    "before": {
+      "id": "p-1782704491289",
+      "name": "测试项目-1782704491288",
+      "code": "TEST-491288",
+      "type": "ICSR",
+      "product": "测试药品",
+      "region": "",
+      "description": "",
+      "templateId": "tpl-icsr",
+      "ownerId": "u-001",
+      "status": "ACTIVE",
+      "startDate": "2026-06-29T03:41:31.289Z",
+      "endDate": null,
+      "memberIds": [
+        "u-001"
+      ],
+      "progress": 0,
+      "createdAt": "2026-06-29T03:41:31.289Z",
+      "updatedAt": "2026-06-29T03:41:31.289Z"
+    },
+    "after": {
+      "id": "p-1782704491289",
+      "name": "测试项目-1782704491288",
+      "code": "TEST-491288",
+      "type": "ICSR",
+      "product": "测试药品",
+      "region": "",
+      "description": "测试更新",
+      "templateId": "tpl-icsr",
+      "ownerId": "u-001",
+      "status": "ACTIVE",
+      "startDate": "2026-06-29T03:41:31.289Z",
+      "endDate": null,
+      "memberIds": [
+        "u-001"
+      ],
+      "progress": 0,
+      "createdAt": "2026-06-29T03:41:31.289Z",
+      "updatedAt": "2026-06-29T03:41:31.292Z"
+    },
+    "createdAt": "2026-06-29T03:41:31.291Z"
+  },
+  {
+    "id": "l-1782704491289",
+    "actorId": "u-001",
+    "objectType": "PROJECT",
+    "objectId": "p-1782704491289",
+    "action": "创建项目 测试项目-1782704491288",
+    "before": null,
+    "after": {
+      "id": "p-1782704491289",
+      "name": "测试项目-1782704491288",
+      "code": "TEST-491288",
+      "type": "ICSR",
+      "product": "测试药品",
+      "region": "",
+      "description": "测试更新",
+      "templateId": "tpl-icsr",
+      "ownerId": "u-001",
+      "status": "ACTIVE",
+      "startDate": "2026-06-29T03:41:31.289Z",
+      "endDate": null,
+      "memberIds": [
+        "u-001"
+      ],
+      "progress": 0,
+      "createdAt": "2026-06-29T03:41:31.289Z",
+      "updatedAt": "2026-06-29T03:41:31.292Z"
+    },
+    "createdAt": "2026-06-29T03:41:31.289Z"
+  }
+]
