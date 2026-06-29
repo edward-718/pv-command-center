@@ -16,6 +16,8 @@ import { notifyReviewResult } from '../services/notification.js';
 
 const router = Router();
 
+type TaskRecord = Record<string, unknown>;
+
 /**
  * 任务状态机
  * 状态: NOT_STARTED → IN_PROGRESS → IN_REVIEW → DONE
@@ -92,7 +94,7 @@ router.get('/', authenticate, (req: Request, res: Response) => {
 
 // 任务详情 - 添加证据状态
 router.get('/:id', authenticate, (req: Request, res: Response) => {
-  const task = pvStore.tasks.get(req.params.id) as Record<string, unknown> | undefined;
+  const task = pvStore.tasks.get(req.params.id) as TaskRecord | undefined;
   if (!task) return res.status(404).json({ code: 404, message: 'task not found' });
 
   const taskId = req.params.id;
