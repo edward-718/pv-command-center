@@ -13,6 +13,7 @@ import projectsRoutes from './routes/projects.js';
 import auditRoutes from './routes/audit.js';
 import aiRoutes from './routes/ai.js';
 import usersRoutes from './routes/users.js';
+import notificationsRoutes from './routes/notifications.js';
 import templatesRoutes from './routes/templates.js';
 import dashboardRoutes from './routes/dashboard.js';
 
@@ -49,9 +50,10 @@ app.use('/api/tasks', tasksRoutes);
 app.use('/api/projects', projectsRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/ai', aiRoutes);
-app.use('/api/users', usersRoutes);
 app.use('/api/templates', templatesRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // === 健康检查 ===
 app.get('/api/health', (_req: Request, res: Response) => {
