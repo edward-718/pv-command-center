@@ -5,7 +5,7 @@
  * - GET  /api/auth/me       当前用户信息
  */
 import { Router, type Request, type Response } from 'express';
-import { generateToken, clearToken, getUsers, getUserById } from '../middleware/auth.js';
+import { generateToken, clearToken, getUsers, getUserById, verifyToken } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -40,16 +40,9 @@ router.get('/me', (req: Request, res: Response) => {
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ code: 401, message: 'not authenticated' });
   }
-
   const token = authHeader.slice(7);
-  // 简单验证：从 token 中解析 userId
-  const parts = token.split('-');
-  if (parts.length < 2) return res.status(401).json({ code: 401, message: 'invalid token' });
-
-  const userId = parts[1];
-  const user = getUserById(userId);
-  if (!user) return res.status(404).json({ code: 404, message: 'user not found' });
-
+  const user = verifyToken(token);
+  if (!user) return res.status(401).json({ code: 401, message: 'invalid token' });
   res.json({ code: 0, data: user });
 });
 
