@@ -1,0 +1,84 @@
+[
+  {
+    "id": "p-1782704700558",
+    "name": "测试项目-全面测试",
+    "code": "TEST-FULL-700557",
+    "type": "ICSR",
+    "product": "测试药品A",
+    "region": "",
+    "description": "更新后的描述",
+    "templateId": "tpl-icsr",
+    "ownerId": "u-001",
+    "status": "CLOSED",
+    "startDate": "2026-06-29T03:45:00.558Z",
+    "endDate": null,
+    "memberIds": [
+      "u-001"
+    ],
+    "progress": 0,
+    "createdAt": "2026-06-29T03:45:00.558Z",
+    "updatedAt": "2026-06-29T03:45:00.613Z",
+    "deletedAt": "2026-06-29T03:45:00.613Z",
+    "deletedBy": "u-001"
+  },
+  {
+    "id": "p-1782704588310",
+    "name": "测试项目-全面测试",
+    "code": "TEST-FULL-588310",
+    "type": "ICSR",
+    "product": "测试药品A",
+    "region": "",
+    "description": "更新后的描述",
+    "templateId": "tpl-icsr",
+    "ownerId": "u-001",
+    "status": "ACTIVE",
+    "startDate": "2026-06-29T03:43:08.310Z",
+    "endDate": null,
+    "memberIds": [
+      "u-001"
+    ],
+    "progress": 0,
+    "createdAt": "2026-06-29T03:43:08.310Z",
+    "updatedAt": "2026-06-29T03:43:08.313Z"
+  },
+  {
+    "id": "p-1782704547082",
+    "name": "测试项目-全面测试",
+    "code": "TEST-FULL-547082",
+    "type": "ICSR",
+    "product": "测试药品A",
+    "region": "",
+    "description": "更新后的描述",
+    "templateId": "tpl-icsr",
+    "ownerId": "u-001",
+    "status": "ACTIVE",
+    "startDate": "2026-06-29T03:42:27.082Z",
+    "endDate": null,
+    "memberIds": [
+      "u-001"
+    ],
+    "progress": 0,
+    "createdAt": "2026-06-29T03:42:27.082Z",
+    "updatedAt": "2026-06-29T03:42:27.086Z"
+  },
+  {
+    "id": "p-1782704491289",
+    "name": "测试项目-1782704491288",
+    "code": "TEST-491288",
+    "type": "ICSR",
+    "product": "测试药品",
+    "region": "",
+    "description": "测试更新",
+    "templateId": "tpl-icsr",
+    "ownerId": "u-001",
+    "status": "ACTIVE",
+    "startDate": "2026-06-29T03:41:31.289Z",
+    "endDate": null,
+    "memberIds": [
+      "u-001"
+    ],
+    "progress": 0,
+    "createdAt": "2026-06-29T03:41:31.289Z",
+    "updatedAt": "2026-06-29T03:41:31.292Z"
+  }
+]
