@@ -1,0 +1,90 @@
+{
+  "t-1782704547089": {
+    "id": "t-1782704547089",
+    "projectId": "p-1782704547082",
+    "title": "测试任务-证据校验",
+    "description": "测试任务的完整描述",
+    "type": "DEFAULT",
+    "status": "IN_PROGRESS",
+    "priority": "P2",
+    "riskLevel": "MEDIUM",
+    "assigneeId": null,
+    "reviewerId": null,
+    "dueAt": "2026-07-06T03:42:27.088Z",
+    "caseId": null,
+    "requiredEvidence": [
+      "原始报告表",
+      "患者基本信息"
+    ],
+    "evidenceUploaded": [],
+    "severity": null,
+    "seriousness": null,
+    "dayZero": null,
+    "medicalOpinion": null,
+    "followUpStatus": "NONE",
+    "submitNote": null,
+    "version": 2,
+    "createdAt": "2026-06-29T03:42:27.089Z",
+    "updatedAt": "2026-06-29T03:42:27.093Z"
+  },
+  "t-1782704588315": {
+    "id": "t-1782704588315",
+    "projectId": "p-1782704588310",
+    "title": "测试任务-证据校验",
+    "description": "测试任务的完整描述",
+    "type": "DEFAULT",
+    "status": "IN_PROGRESS",
+    "priority": "P2",
+    "riskLevel": "MEDIUM",
+    "assigneeId": "u-processor-001",
+    "reviewerId": null,
+    "dueAt": "2026-07-06T03:43:08.314Z",
+    "caseId": null,
+    "requiredEvidence": [
+      "原始报告表",
+      "患者基本信息"
+    ],
+    "evidenceUploaded": [
+      "原始报告表"
+    ],
+    "severity": null,
+    "seriousness": null,
+    "dayZero": null,
+    "medicalOpinion": null,
+    "followUpStatus": "NONE",
+    "submitNote": null,
+    "version": 2,
+    "createdAt": "2026-06-29T03:43:08.315Z",
+    "updatedAt": "2026-06-29T03:43:08.322Z"
+  },
+  "t-1782704700566": {
+    "id": "t-1782704700566",
+    "projectId": "p-1782704700558",
+    "title": "测试任务-证据校验",
+    "description": "测试任务的完整描述",
+    "type": "DEFAULT",
+    "status": "IN_PROGRESS",
+    "priority": "P2",
+    "riskLevel": "MEDIUM",
+    "assigneeId": "u-processor-001",
+    "reviewerId": null,
+    "dueAt": "2026-07-06T03:45:00.565Z",
+    "caseId": null,
+    "requiredEvidence": [
+      "原始报告表",
+      "患者基本信息"
+    ],
+    "evidenceUploaded": [
+      "原始报告表"
+    ],
+    "severity": null,
+    "seriousness": null,
+    "dayZero": null,
+    "medicalOpinion": null,
+    "followUpStatus": "NONE",
+    "submitNote": null,
+    "version": 2,
+    "createdAt": "2026-06-29T03:45:00.566Z",
+    "updatedAt": "2026-06-29T03:45:00.575Z"
+  }
+}
