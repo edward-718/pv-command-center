@@ -1,0 +1,26 @@
+[
+  {
+    "id": "a-1782704700578",
+    "taskId": "t-1782704700566",
+    "fileName": "测试文件.pdf",
+    "size": 0,
+    "type": "application/octet-stream",
+    "version": 1,
+    "uploaderId": "u-001",
+    "evidenceKey": "原始报告表",
+    "isDeleted": false,
+    "createdAt": "2026-06-29T03:45:00.578Z"
+  },
+  {
+    "id": "a-1782704588325",
+    "taskId": "t-1782704588315",
+    "fileName": "测试文件.pdf",
+    "size": 0,
+    "type": "application/octet-stream",
+    "version": 1,
+    "uploaderId": "u-001",
+    "evidenceKey": "原始报告表",
+    "isDeleted": false,
+    "createdAt": "2026-06-29T03:43:08.325Z"
+  }
+]
