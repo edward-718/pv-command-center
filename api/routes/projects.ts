@@ -16,8 +16,13 @@ const router = Router();
 // 项目列表
 router.get('/', authenticate, (req: Request, res: Response) => {
   const user = req.user as AuthUser;
-  const { status, type, search } = req.query as { status?: string; type?: string; search?: string };
+  const { status, type, search, includeArchived } = req.query as { status?: string; type?: string; search?: string; includeArchived?: string };
   let projects = filterVisibleProjects(pvStore.projects, user, pvStore.tasks) as Array<Record<string, unknown>>;
+
+  // 默认过滤掉已归档（有 deletedAt）的项目
+  if (includeArchived !== 'true') {
+    projects = projects.filter((p) => !p.deletedAt);
+  }
 
   if (status) projects = projects.filter((p) => p.status === status);
   if (type) projects = projects.filter((p) => p.type === type);
