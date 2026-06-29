@@ -3,7 +3,7 @@
  * 统一管理后端 API 地址和请求配置
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001/api';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 export interface ApiResponse<T = unknown> {
   code: number;
@@ -28,12 +28,12 @@ class ApiClient {
   private async request<T>(
     method: string,
     path: string,
-    options: RequestInit = {}
+    options: { body?: unknown; headers?: Record<string, string> } = {}
   ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...(options.headers as Record<string, string>),
+      ...(options.headers || {}),
     };
 
     const token = localStorage.getItem('pv-token');
@@ -44,7 +44,7 @@ class ApiClient {
     const response = await fetch(url, {
       method,
       headers,
-      body: options.body ? JSON.stringify(options.body) : undefined,
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
     });
 
     if (!response.ok) {
@@ -59,15 +59,15 @@ class ApiClient {
   }
 
   async post<T>(path: string, body: unknown): Promise<T> {
-    return this.request<T>('POST', path, { body: body as BodyInit | undefined });
+    return this.request<T>('POST', path, { body });
   }
 
   async put<T>(path: string, body?: unknown): Promise<T> {
-    return this.request<T>('PUT', path, { body: body as BodyInit | undefined });
+    return this.request<T>('PUT', path, { body });
   }
 
   async patch<T>(path: string, body: unknown): Promise<T> {
-    return this.request<T>('PATCH', path, { body: body as BodyInit | undefined });
+    return this.request<T>('PATCH', path, { body });
   }
 
   async delete<T>(path: string): Promise<T> {
@@ -145,15 +145,14 @@ export const aiApi = {
 
 // 通知
 export const notificationsApi = {
-  list: (params?: { userId?: string; status?: string }) => {
+  list: (params?: { unread?: boolean }) => {
     const searchParams = new URLSearchParams();
-    if (params?.userId) searchParams.set('userId', params.userId);
-    if (params?.status) searchParams.set('status', params.status);
+    if (params?.unread !== undefined) searchParams.set('unread', String(params.unread));
     const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
-    return api.get<unknown[]>(`/users/notifications${query}`);
+    return api.get<unknown[]>(`/notifications${query}`);
   },
-  markRead: (id: string) => api.put<unknown>(`/users/notifications/${id}/read`),
-  markAllRead: (userId: string) => api.put<unknown>('/users/notifications/read-all', { userId }),
+  markRead: (id: string) => api.put<unknown>(`/notifications/${id}/read`),
+  markAllRead: () => api.put<unknown>('/notifications/read-all'),
 };
 
 // 模板
