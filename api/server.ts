@@ -6,7 +6,7 @@ import app, { startServer } from './app.js';
 /**
  * start server with port
  */
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3010;
 
 const server = startServer(app, PORT);
 
