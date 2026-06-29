@@ -95,7 +95,7 @@ export type Permission =
   | 'ai:confirm';
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  PM: ['project:create', 'project:read', 'project:update', 'task:read', 'task:update', 'task:assign', 'task:review', 'task:upload', 'audit:read', 'audit:export', 'template:read', 'template:update', 'notification:read', 'ai:generate', 'ai:confirm'],
+  PM: ['project:create', 'project:read', 'project:update', 'project:delete', 'task:read', 'task:update', 'task:assign', 'task:review', 'task:upload', 'audit:read', 'audit:export', 'template:read', 'template:update', 'notification:read', 'ai:generate', 'ai:confirm'],
   PROCESSOR: ['project:read', 'task:read', 'task:update', 'task:upload', 'notification:read'],
   PHYSICIAN: ['project:read', 'task:read', 'task:update', 'task:review', 'task:upload', 'notification:read'],
   QA: ['project:read', 'task:read', 'task:review', 'task:upload', 'audit:read', 'audit:export', 'notification:read', 'ai:confirm'],
