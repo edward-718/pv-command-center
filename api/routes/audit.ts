@@ -117,7 +117,8 @@ function generateAuditHtml(projectId: string, project: Record<string, unknown>):
 
   const statusCounts = { TASK: 0, PROJECT: 0, REVIEW: 0, ATTACHMENT: 0, EXPORT: 0 };
   projectLogs.forEach((l) => {
-    if (typeof l.objectType === 'string' && l.objectType in statusCounts) statusCounts[l.objectType as keyof typeof statusCounts]++;
+    const objType = l.objectType as string;
+    if (objType in statusCounts) statusCounts[objType as keyof typeof statusCounts]++;
   });
 
   const logsHtml = projectLogs.map((log) => {
