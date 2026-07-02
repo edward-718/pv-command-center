@@ -1,5 +1,69 @@
 [
   {
+    "id": "p-1782712341759",
+    "name": "验收测试项目-ICSR",
+    "code": "ACC-ICSR-341759",
+    "type": "ICSR",
+    "product": "验收测试药品",
+    "region": "",
+    "description": "测试完整主流程",
+    "templateId": "tpl-icsr",
+    "ownerId": "u-001",
+    "status": "ACTIVE",
+    "startDate": "2026-06-29T05:52:21.759Z",
+    "endDate": null,
+    "memberIds": [
+      "u-001"
+    ],
+    "progress": 0,
+    "createdAt": "2026-06-29T05:52:21.759Z",
+    "updatedAt": "2026-06-29T05:52:21.759Z"
+  },
+  {
+    "id": "p-1782711552654",
+    "name": "测试项目-模板生成",
+    "code": "TPL-552653",
+    "type": "ICSR",
+    "product": "测试药品A",
+    "region": "",
+    "description": "更新后的描述",
+    "templateId": "tpl-icsr",
+    "ownerId": "u-001",
+    "status": "CLOSED",
+    "startDate": "2026-06-29T05:39:12.654Z",
+    "endDate": null,
+    "memberIds": [
+      "u-001"
+    ],
+    "progress": 0,
+    "createdAt": "2026-06-29T05:39:12.654Z",
+    "updatedAt": "2026-06-29T05:39:12.703Z",
+    "deletedAt": "2026-06-29T05:39:12.703Z",
+    "deletedBy": "u-001"
+  },
+  {
+    "id": "p-1782711492417",
+    "name": "测试项目-模板生成",
+    "code": "TPL-492416",
+    "type": "ICSR",
+    "product": "测试药品A",
+    "region": "",
+    "description": "更新后的描述",
+    "templateId": "tpl-icsr",
+    "ownerId": "u-001",
+    "status": "CLOSED",
+    "startDate": "2026-06-29T05:38:12.417Z",
+    "endDate": null,
+    "memberIds": [
+      "u-001"
+    ],
+    "progress": 0,
+    "createdAt": "2026-06-29T05:38:12.417Z",
+    "updatedAt": "2026-06-29T05:38:12.457Z",
+    "deletedAt": "2026-06-29T05:38:12.457Z",
+    "deletedBy": "u-001"
+  },
+  {
     "id": "p-1782704700558",
     "name": "测试项目-全面测试",
     "code": "TEST-FULL-700557",
