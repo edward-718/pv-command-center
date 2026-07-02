@@ -17,7 +17,7 @@ export function VendorsPage() {
   // 供应商只能看到分配给自己的任务；PM 可以看到所有供应商空间
   const isVendor = me.role === 'VENDOR';
   const tasks = isVendor
-    ? allTasks.filter((t) => t.assigneeId === me.id)
+    ? allTasks.filter((t) => t.assigneeId === me.id || t.reviewerId === me.id)
     : allTasks.filter((t) => {
         const assignee = users.find((u) => u.id === t.assigneeId);
         return assignee?.role === 'VENDOR';
@@ -52,7 +52,7 @@ export function VendorsPage() {
             {users
               .filter((u) => u.role === 'VENDOR')
               .map((u) => {
-                const myTasks = allTasks.filter((t) => t.assigneeId === u.id);
+                const myTasks = allTasks.filter((t) => t.assigneeId === u.id || t.reviewerId === u.id);
                 const overdue = myTasks.filter((t) => t.status !== 'DONE' && daysFromNow(t.dueAt) < 0).length;
                 return (
                   <div key={u.id} className="rounded-lg border border-ink-900/5 p-3 flex items-center gap-2.5">
