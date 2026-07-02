@@ -8,6 +8,7 @@
 import { Router, type Request, type Response } from 'express';
 import pvStore from '../store.js';
 import { authenticate, requirePermission } from '../middleware/auth.js';
+import { error } from '../errors.js';
 
 const router = Router();
 
@@ -42,6 +43,14 @@ router.get('/logs', authenticate, requirePermission('audit:read'), (req: Request
   const total = list.length;
   const p = parseInt(page, 10);
   const ps = parseInt(pageSize, 10);
+
+  if (isNaN(p) || p < 1) {
+    return res.status(400).json(error(400, 'page must be >= 1'));
+  }
+  if (isNaN(ps) || ps < 1 || ps > 100) {
+    return res.status(400).json(error(400, 'pageSize must be between 1 and 100'));
+  }
+
   const start = (p - 1) * ps;
 
   res.json({
