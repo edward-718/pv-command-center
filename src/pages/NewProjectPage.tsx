@@ -5,7 +5,7 @@ import { useStore, roleCan } from '@/store/useStore';
 import { PageHeader } from '@/components/TopBar';
 import { Chip } from '@/components/Badge';
 import { cn, formatDate } from '@/lib/utils';
-import { PROJECT_TYPE_LABEL, type ProjectType, type Template } from '@/types';
+import { PROJECT_TYPE_LABEL, REGULATORY_RULE_LABEL, CASE_TYPE_LABEL, type ProjectType, type Template, type RegulatoryRule, type CaseType } from '@/types';
 
 const TYPE_DESC: Record<ProjectType, string> = {
   ICSR: '个例安全报告，含医学审评、质量复核、监管提交。',
@@ -22,9 +22,10 @@ const TYPE_TONE: Record<ProjectType, string> = {
 };
 
 export function NewProjectPage() {
-  const me = useStore((s) => s.currentUser)!;
+  const me = useStore((s) => s.currentUser);
   const templates = useStore((s) => s.templates);
   const create = useStore((s) => s.createProjectFromTemplate);
+  const pushToast = useStore((s) => s.pushToast);
   const navigate = useNavigate();
 
   const [step, setStep] = useState<'template' | 'detail'>('template');
@@ -34,6 +35,20 @@ export function NewProjectPage() {
   const [product, setProduct] = useState('');
   const [region, setRegion] = useState('中国 / NMPA');
   const [description, setDescription] = useState('');
+  const [dayZero, setDayZero] = useState('');
+  const [regulatoryRule, setRegulatoryRule] = useState<RegulatoryRule>('NMPA-15d');
+  const [caseType, setCaseType] = useState<CaseType>('SERIOUS');
+
+  if (!me) {
+    return (
+      <div className="surface p-10 text-center">
+        <div className="text-[14px] font-semibold text-ink-800">请先登录</div>
+        <button className="btn btn-ghost mt-4" onClick={() => navigate('/login')}>
+          返回登录页
+        </button>
+      </div>
+    );
+  }
 
   if (!roleCan(me.role, 'create_project')) {
     return (
@@ -53,11 +68,45 @@ export function NewProjectPage() {
     setName('');
     setCode(`${t.type === 'ICSR' ? 'ICSR' : t.type === 'INQUIRY' ? 'INQ' : t.type === 'CAPA' ? 'CAPA' : 'PSUR'}-2026-${Math.floor(Math.random() * 900 + 100)}`);
     setDescription('');
+    setDayZero(t.type === 'ICSR' ? new Date().toISOString().split('T')[0] : '');
+    setRegulatoryRule(t.type === 'ICSR' ? (region.includes('中国') ? 'NMPA-15d' : region.includes('美国') ? 'FDA-15d' : region.includes('欧盟') ? 'EMA-15d' : 'NMPA-15d') : 'NMPA-15d');
     setStep('detail');
   };
 
   const onSubmit = () => {
-    if (!selectedTpl || !name.trim() || !code.trim() || !product.trim()) return;
+    if (!selectedTpl) return;
+    if (!name.trim()) {
+      pushToast('error', '请填写项目名称');
+      return;
+    }
+    if (name.trim().length > 60) {
+      pushToast('error', '项目名称不能超过60个字符');
+      return;
+    }
+    if (!code.trim()) {
+      pushToast('error', '请填写项目编号');
+      return;
+    }
+    if (code.trim().length > 30) {
+      pushToast('error', '项目编号不能超过30个字符');
+      return;
+    }
+    if (!product.trim()) {
+      pushToast('error', '请填写产品名称');
+      return;
+    }
+    if (product.trim().length > 60) {
+      pushToast('error', '产品名称不能超过60个字符');
+      return;
+    }
+    if (description.trim().length > 2000) {
+      pushToast('error', '项目描述不能超过2000个字符');
+      return;
+    }
+    if (selectedTpl.type === 'ICSR' && !dayZero) {
+      pushToast('error', '请选择 Day 0 日期');
+      return;
+    }
     const project = create({
       name: name.trim(),
       code: code.trim(),
@@ -66,8 +115,13 @@ export function NewProjectPage() {
       region: region.trim() || '中国 / NMPA',
       description: description.trim() || `基于「${selectedTpl.name}」创建`,
       templateId: selectedTpl.id,
+      dayZero: selectedTpl.type === 'ICSR' ? dayZero : undefined,
+      regulatoryRule: selectedTpl.type === 'ICSR' ? regulatoryRule : undefined,
+      caseType: selectedTpl.type === 'ICSR' ? caseType : undefined,
     });
-    navigate(`/projects/${project.id}`);
+    if (project) {
+      navigate(`/projects/${project.id}`);
+    }
   };
 
   return (
@@ -186,13 +240,46 @@ export function NewProjectPage() {
                   placeholder="简要描述项目背景、关键时限与风险点…"
                 />
               </div>
+              {selectedTpl?.type === 'ICSR' && (
+                <>
+                  <div className="field">
+                    <label className="field-label">Day 0 日期 <span className="text-danger-600">*</span></label>
+                    <input
+                      type="date"
+                      className="field-input font-mono"
+                      value={dayZero}
+                      onChange={(e) => setDayZero(e.target.value)}
+                      required
+                    />
+                    <div className="text-[11px] text-ink-500 mt-1">首次获知可疑不良反应的日期，用于计算法规提交时限</div>
+                  </div>
+                  <div className="field">
+                    <label className="field-label">病例类型</label>
+                    <select className="field-select" value={caseType} onChange={(e) => setCaseType(e.target.value as CaseType)}>
+                      {Object.entries(CASE_TYPE_LABEL).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                    <div className="text-[11px] text-ink-500 mt-1">用于确定严重性等级和监管时限</div>
+                  </div>
+                  <div className="field">
+                    <label className="field-label">法规提交规则</label>
+                    <select className="field-select" value={regulatoryRule} onChange={(e) => setRegulatoryRule(e.target.value as RegulatoryRule)}>
+                      {Object.entries(REGULATORY_RULE_LABEL).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                    <div className="text-[11px] text-ink-500 mt-1">将根据 Day 0 自动计算法规截止日期</div>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="mt-6 flex items-center gap-2">
               <button
                 className="btn btn-primary"
                 onClick={onSubmit}
-                disabled={!name.trim() || !code.trim() || !product.trim()}
+                disabled={!name.trim() || !code.trim() || !product.trim() || (selectedTpl?.type === 'ICSR' && !dayZero)}
               >
                 <CheckCircle2 className="w-3.5 h-3.5" /> 创建并生成任务
               </button>
