@@ -82,6 +82,23 @@ export type User = {
   avatar?: string;
 };
 
+export type RegulatoryRule = 'NMPA-15d' | 'NMPA-非严重-30d' | 'EMA-15d' | 'FDA-15d' | 'custom';
+export const REGULATORY_RULE_LABEL: Record<RegulatoryRule, string> = {
+  'NMPA-15d': 'NMPA-15天',
+  'NMPA-非严重-30d': 'NMPA-非严重-30天',
+  'EMA-15d': 'EMA-15天',
+  'FDA-15d': 'FDA-15天',
+  'custom': '自定义',
+};
+
+export type CaseType = 'SERIOUS' | 'NON_SERIOUS' | 'FATAL' | 'UNKNOWN';
+export const CASE_TYPE_LABEL: Record<CaseType, string> = {
+  SERIOUS: '严重',
+  NON_SERIOUS: '非严重',
+  FATAL: '死亡',
+  UNKNOWN: '未知',
+};
+
 export type Project = {
   id: string;
   name: string;
@@ -97,6 +114,66 @@ export type Project = {
   memberIds: string[];
   progress: number; // 0-100
   description: string;
+  dayZero?: string;
+  regulatoryRule?: RegulatoryRule;
+  caseType?: CaseType;
+  followUpCount: number;
+  submissions: Submission[];
+};
+
+export type Causality = 'RELATED' | 'POSSIBLY_RELATED' | 'UNRELATED' | 'PENDING';
+export const CAUSALITY_LABEL: Record<Causality, string> = {
+  RELATED: '相关',
+  POSSIBLY_RELATED: '可能相关',
+  UNRELATED: '不相关',
+  PENDING: '待评估',
+};
+
+export type SubmissionStatus = 'PENDING' | 'SUBMITTED' | 'CONFIRMED' | 'RETURNED';
+export const SUBMISSION_STATUS_LABEL: Record<SubmissionStatus, string> = {
+  PENDING: '待提交',
+  SUBMITTED: '已提交',
+  CONFIRMED: '已确认',
+  RETURNED: '被退回',
+};
+export const SUBMISSION_STATUS_TONE: Record<SubmissionStatus, string> = {
+  PENDING: 'bg-ink-100 text-ink-600 border-ink-200',
+  SUBMITTED: 'bg-teal-50 text-teal-700 border-teal-200',
+  CONFIRMED: 'bg-cobalt-50 text-cobalt-700 border-cobalt-200',
+  RETURNED: 'bg-danger-500/10 text-danger-600 border-danger-500/30',
+};
+
+export type Submission = {
+  id: string;
+  projectId: string;
+  taskId?: string;
+  agency: string;
+  channel: string;
+  submitDate: string;
+  receiptNo?: string;
+  receiptDate?: string;
+  status: SubmissionStatus;
+  notes?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type FollowUpRecord = {
+  id: string;
+  date: string;
+  note: string;
+  completed: boolean;
+};
+
+export type Activity = {
+  id: string;
+  userId: string;
+  projectId?: string;
+  taskId?: string;
+  type: string;
+  content: string;
+  createdAt: string;
 };
 
 export type Task = {
@@ -123,6 +200,16 @@ export type Task = {
   followUpStatus?: 'NONE' | 'PENDING' | 'COMPLETED';
   createdAt: string;
   updatedAt: string;
+  regulatoryDeadline?: string;
+  dependsOn: string[];
+  blocked: boolean;
+  causality?: Causality;
+  meddraPt?: string;
+  meddraLlt?: string;
+  signalFlag: boolean;
+  followUpRound: number;
+  followUpRecords: FollowUpRecord[];
+  customValues: Record<string, unknown>;
 };
 
 export type Comment = {
@@ -149,12 +236,38 @@ export type Attachment = {
 export type AuditLog = {
   id: string;
   actorId: string;
-  objectType: 'TASK' | 'PROJECT' | 'TEMPLATE' | 'ATTACHMENT' | 'REVIEW' | 'EXPORT';
+  objectType: 'TASK' | 'PROJECT' | 'TEMPLATE' | 'ATTACHMENT' | 'REVIEW' | 'EXPORT' | 'AI_DRAFT' | 'BATCH' | 'IMPORT';
   objectId: string;
   action: string;
   before?: unknown;
   after?: unknown;
   createdAt: string;
+};
+
+export type SavedFilter = {
+  id: string;
+  name: string;
+  conditions: {
+    keyword: string;
+    projectIds: string[];
+    assigneeIds: string[];
+    dueDateFrom: string;
+    dueDateTo: string;
+    riskLevels: RiskLevel[];
+    statuses: TaskStatus[];
+    seriousnessLevels: NonNullable<Task['seriousness']>[];
+  };
+  createdBy: string;
+  createdAt: string;
+};
+
+export type CSVImportReport = {
+  totalRows: number;
+  successCount: number;
+  skippedCount: number;
+  failedCount: number;
+  errors: { row: number; reason: string }[];
+  importedAt: string;
 };
 
 export type Review = {
@@ -174,6 +287,9 @@ export type TemplateNode = {
   relativeDueDays: number;
   requiredEvidence: string[];
   description?: string;
+  dependsOn?: string[];
+  regulatoryDeadline?: number;
+  requiredFields?: string[];
 };
 
 export type Template = {
@@ -189,7 +305,7 @@ export type Notification = {
   id: string;
   userId: string;
   source: string; // e.g. taskId
-  category: 'DEADLINE' | 'OVERDUE' | 'REVIEW' | 'EVIDENCE' | 'SYSTEM';
+  category: 'DEADLINE' | 'OVERDUE' | 'REVIEW' | 'EVIDENCE' | 'SUBMISSION' | 'SYSTEM' | 'COMMENT' | 'MENTION' | 'TASK';
   content: string;
   status: 'UNREAD' | 'READ';
   createdAt: string;
