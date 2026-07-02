@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Download, FileText, Filter, Search, ShieldCheck } from 'lucide-react';
-import { useStore, roleCan } from '@/store/useStore';
+import { useStore, roleCan, selectVisibleProjects, selectVisibleTasks } from '@/store/useStore';
 import { PageHeader } from '@/components/TopBar';
 import { Avatar } from '@/components/Avatar';
 import { Chip } from '@/components/Badge';
@@ -21,14 +21,41 @@ export function AuditPage() {
   const [objectType, setObjectType] = useState<AuditLog['objectType'] | 'ALL'>('ALL');
   const [actorId, setActorId] = useState<string | 'ALL'>('ALL');
 
-  const filtered = useMemo(() => {
+  const visibleProjects = useMemo(
+    () => selectVisibleProjects({ ...useStore.getState(), currentUser: me }, me),
+    [me, projects, tasks],
+  );
+  const visibleTasks = useMemo(
+    () => selectVisibleTasks({ ...useStore.getState(), currentUser: me }, me),
+    [me, projects, tasks],
+  );
+  const visibleProjectIds = useMemo(() => new Set(visibleProjects.map((p) => p.id)), [visibleProjects]);
+  const visibleTaskIds = useMemo(() => new Set(visibleTasks.map((t) => t.id)), [visibleTasks]);
+
+  const visibleLogs = useMemo(() => {
     return logs.filter((l) => {
+      if (l.objectType === 'PROJECT') return visibleProjectIds.has(l.objectId);
+      if (l.objectType === 'TASK') return visibleTaskIds.has(l.objectId);
+      if (l.objectType === 'REVIEW') return visibleTaskIds.has(l.objectId);
+      if (l.objectType === 'ATTACHMENT') {
+        const att = useStore.getState().attachments.find((a) => a.id === l.objectId);
+        return att ? visibleTaskIds.has(att.taskId) : false;
+      }
+      // Bug12修复: TEMPLATE日志对QA可见，移除PROCESSOR死代码
+      if (l.objectType === 'TEMPLATE') return me.role === 'PM' || me.role === 'ADMIN' || me.role === 'QA';
+      if (l.objectType === 'EXPORT') return roleCan(me.role, 'audit_export');
+      return false;
+    });
+  }, [logs, visibleProjectIds, visibleTaskIds, me]);
+
+  const filtered = useMemo(() => {
+    return visibleLogs.filter((l) => {
       if (objectType !== 'ALL' && l.objectType !== objectType) return false;
       if (actorId !== 'ALL' && l.actorId !== actorId) return false;
       if (q && !`${l.action} ${l.objectId}`.toLowerCase().includes(q.toLowerCase())) return false;
       return true;
     });
-  }, [logs, objectType, actorId, q]);
+  }, [visibleLogs, objectType, actorId, q]);
 
   const canExport = roleCan(me.role, 'audit_export');
 
@@ -40,7 +67,7 @@ export function AuditPage() {
     <>
       <PageHeader
         title="审计中心"
-        subtitle={`所有关键操作均会留痕。当前共 ${logs.length} 条日志，导出审计包用于内部或外部审计。`}
+        subtitle={`所有关键操作均会留痕。当前共 ${visibleLogs.length} 条日志，导出审计包用于内部或外部审计。`}
         actions={
           canExport && (
             <button onClick={onExport} className="btn btn-primary text-[12px]">
@@ -51,12 +78,12 @@ export function AuditPage() {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3.5 mb-5">
-        <AuditStat label="总日志数" value={logs.length} icon={FileText} tone="cobalt" />
-        <AuditStat label="任务相关" value={logs.filter((l) => l.objectType === 'TASK').length} icon={ShieldCheck} tone="amber" />
-        <AuditStat label="项目相关" value={logs.filter((l) => l.objectType === 'PROJECT').length} icon={ShieldCheck} tone="teal" />
+        <AuditStat label="总日志数" value={visibleLogs.length} icon={FileText} tone="cobalt" />
+        <AuditStat label="任务相关" value={visibleLogs.filter((l) => l.objectType === 'TASK').length} icon={ShieldCheck} tone="amber" />
+        <AuditStat label="项目相关" value={visibleLogs.filter((l) => l.objectType === 'PROJECT').length} icon={ShieldCheck} tone="teal" />
         <AuditStat
           label="导出次数"
-          value={logs.filter((l) => l.objectType === 'EXPORT').length}
+          value={visibleLogs.filter((l) => l.objectType === 'EXPORT').length}
           icon={Download}
           tone="ink"
         />
