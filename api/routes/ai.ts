@@ -4,7 +4,7 @@
  * - POST /api/ai/draft          生成草稿
  * - PUT  /api/ai/draft/:id/confirm  确认草稿
  */
-import { Router, type Request, type Response } from 'express';
+import { Router, type Request, type Response, type NextFunction } from 'express';
 import pvStore from '../store.js';
 import { authenticate, requirePermission, type AuthUser } from '../middleware/auth.js';
 
@@ -21,43 +21,55 @@ type AIDraft = {
 };
 
 // 获取 AI 草稿列表（需认证）
-router.get('/drafts', authenticate, (req: Request, res: Response) => {
-  const user = req.user as AuthUser;
-  const { projectId, confirmed } = req.query as { projectId?: string; confirmed?: string };
-  let list = [...(pvStore.aiDrafts as AIDraft[])].filter((d) => d.authorId === user.id);
-  if (projectId) list = list.filter((d) => d.projectId === projectId);
-  if (confirmed !== undefined) list = list.filter((d) => d.confirmed === (confirmed === 'true'));
-  list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  res.json({ code: 0, data: list });
+router.get('/drafts', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user as AuthUser;
+    const { projectId, confirmed } = req.query as { projectId?: string; confirmed?: string };
+    let list = [...(pvStore.aiDrafts as AIDraft[])].filter((d) => d.authorId === user.id);
+    if (projectId) list = list.filter((d) => d.projectId === projectId);
+    if (confirmed !== undefined) list = list.filter((d) => d.confirmed === (confirmed === 'true'));
+    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    res.json({ code: 0, data: list });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // 生成 AI 草稿（需认证 + ai:generate 权限）
-router.post('/draft', authenticate, requirePermission('ai:generate'), (req: Request, res: Response) => {
-  const user = req.user as AuthUser;
-  const { projectId, kind } = req.body as { projectId?: string; kind?: string };
-  if (!projectId || !kind) return res.status(400).json({ code: 400, message: 'projectId and kind required' });
-  const draft: AIDraft = {
-    id: `aig-${Date.now()}`,
-    projectId,
-    authorId: user.id,
-    kind,
-    content: generateDraftContent(kind, projectId, pvStore),
-    confirmed: false,
-    createdAt: new Date().toISOString(),
-  };
-  (pvStore.aiDrafts as unknown[]).unshift(draft);
-  pvStore.save();
-  res.json({ code: 0, data: draft });
+router.post('/draft', authenticate, requirePermission('ai:generate'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user as AuthUser;
+    const { projectId, kind } = req.body as { projectId?: string; kind?: string };
+    if (!projectId || !kind) return res.status(400).json({ code: 400, message: 'projectId and kind required' });
+    const draft: AIDraft = {
+      id: `aig-${Date.now()}`,
+      projectId,
+      authorId: user.id,
+      kind,
+      content: generateDraftContent(kind, projectId, pvStore),
+      confirmed: false,
+      createdAt: new Date().toISOString(),
+    };
+    (pvStore.aiDrafts as unknown[]).unshift(draft);
+    pvStore.save();
+    res.json({ code: 0, data: draft });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // 确认 AI 草稿（需认证 + ai:confirm 权限）
-router.put('/draft/:id/confirm', authenticate, requirePermission('ai:confirm'), (req: Request, res: Response) => {
-  const draft = (pvStore.aiDrafts as AIDraft[]).find((d) => d.id === req.params.id);
-  if (!draft) return res.status(404).json({ code: 404, message: 'draft not found' });
-  if (draft.confirmed) return res.status(400).json({ code: 400, message: 'draft already confirmed' });
-  draft.confirmed = true;
-  pvStore.save();
-  res.json({ code: 0, data: draft });
+router.put('/draft/:id/confirm', authenticate, requirePermission('ai:confirm'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const draft = (pvStore.aiDrafts as AIDraft[]).find((d) => d.id === req.params.id);
+    if (!draft) return res.status(404).json({ code: 404, message: 'draft not found' });
+    if (draft.confirmed) return res.status(400).json({ code: 400, message: 'draft already confirmed' });
+    draft.confirmed = true;
+    pvStore.save();
+    res.json({ code: 0, data: draft });
+  } catch (err) {
+    next(err);
+  }
 });
 
 function generateDraftContent(kind: string, projectId: string, store: typeof pvStore): string {
