@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, ChevronDown, LogOut, Search, Sparkles, RotateCcw } from 'lucide-react';
-import { useStore, roleCan } from '@/store/useStore';
+import { useStore, roleCan, selectVisibleProjects, selectVisibleTasks } from '@/store/useStore';
 import { ROLE_LABEL, type Role } from '@/types';
 import { Avatar } from './Avatar';
 import { cn, formatDate, relativeFromNow } from '@/lib/utils';
@@ -37,13 +37,27 @@ export function TopBar() {
 
   if (!me) return null;
 
-  const myNotifs = notifications.filter((n) => n.userId === me.id);
+  const myNotifs = notifications
+    .filter((n) => n.userId === me.id)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const unread = myNotifs.filter((n) => n.status === 'UNREAD').length;
 
+  const notifCategoryTone: Record<string, string> = {
+    DEADLINE: 'bg-amber-500',
+    OVERDUE: 'bg-danger-500',
+    REVIEW: 'bg-cobalt-500',
+    EVIDENCE: 'bg-violet-500',
+    SUBMISSION: 'bg-teal-500',
+    SYSTEM: 'bg-ink-400',
+    COMMENT: 'bg-sky-500',
+    MENTION: 'bg-fuchsia-500',
+    TASK: 'bg-emerald-500',
+  };
+
   // 搜索结果
-  const searchResults = search.trim()
+  const searchResults = search.trim() && me
     ? {
-        tasks: tasks
+        tasks: selectVisibleTasks({ ...useStore.getState(), currentUser: me }, me)
           .filter(
             (t) =>
               t.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -51,7 +65,7 @@ export function TopBar() {
               (t.caseId ?? '').toLowerCase().includes(search.toLowerCase()),
           )
           .slice(0, 5),
-        projects: projects
+        projects: selectVisibleProjects({ ...useStore.getState(), currentUser: me }, me)
           .filter(
             (p) =>
               p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -145,8 +159,9 @@ export function TopBar() {
           <button
             onClick={() => setNotifOpen((v) => !v)}
             className="relative w-8 h-8 rounded-lg hover:bg-ink-900/[0.04] flex items-center justify-center transition-colors"
+            aria-label={`通知${unread > 0 ? `，${unread}条未读` : ''}`}
           >
-            <Bell className="w-4 h-4 text-ink-700" />
+            <Bell className="w-4 h-4 text-ink-700" aria-hidden="true" />
             {unread > 0 && (
               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-danger-500 ring-2 ring-white" />
             )}
@@ -171,8 +186,14 @@ export function TopBar() {
                       key={n.id}
                       onClick={() => {
                         markNotificationRead(n.id);
-                        if (n.source && n.source !== 'system') {
-                          navigate(`/tasks/${n.source}`);
+                        if (n.source && n.source !== 'system' && n.source !== 'batch') {
+                          if (n.category === 'SUBMISSION') {
+                            navigate(`/projects/${n.source}`);
+                          } else {
+                            navigate(`/tasks/${n.source}`);
+                          }
+                          setNotifOpen(false);
+                        } else {
                           setNotifOpen(false);
                         }
                       }}
@@ -184,11 +205,7 @@ export function TopBar() {
                       <div
                         className={cn(
                           'w-1 self-stretch rounded-full',
-                          n.category === 'DEADLINE' && 'bg-amber-500',
-                          n.category === 'OVERDUE' && 'bg-danger-500',
-                          n.category === 'REVIEW' && 'bg-cobalt-500',
-                          n.category === 'EVIDENCE' && 'bg-ink-400',
-                          n.category === 'SYSTEM' && 'bg-teal-500',
+                          notifCategoryTone[n.category] ?? 'bg-ink-400',
                         )}
                       />
                       <div className="flex-1 min-w-0">
