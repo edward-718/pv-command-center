@@ -7,6 +7,7 @@ import {
   CircleDot,
   ClipboardList,
   Clock4,
+  FileCheck,
   FileText,
   Flame,
   ListChecks,
@@ -19,7 +20,7 @@ import { useStore, selectVisibleProjects, selectVisibleTasks, roleCan } from '@/
 import { PageHeader } from '@/components/TopBar';
 import { Avatar, AvatarStack, RoleChip } from '@/components/Avatar';
 import { Chip, PriorityTag, RiskTag, SeverityTag, StatusBadge } from '@/components/Badge';
-import { cn, daysFromNow, dueUrgency, formatDate, relativeFromNow } from '@/lib/utils';
+import { cn, daysFromNow, dueUrgency, formatDate, getDaysUntilDeadline, getMissingEvidence, relativeFromNow } from '@/lib/utils';
 import { PROJECT_TYPE_LABEL, type ProjectType, type Task, type User } from '@/types';
 
 const PROJECT_TYPE_TONE: Record<ProjectType, string> = {
@@ -34,14 +35,19 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const allProjects = useStore((s) => s.projects);
   const allTasks = useStore((s) => s.tasks);
+  const allAttachments = useStore((s) => s.attachments);
   const users = useStore((s) => s.users);
   const templates = useStore((s) => s.templates);
   const auditLogs = useStore((s) => s.auditLogs);
+  const activities = useStore((s) => s.activities);
 
   if (!me) return null;
 
   const projects = useMemo(() => selectVisibleProjects({ ...useStore.getState(), currentUser: me }, me), [me, allProjects, allTasks]);
   const tasks = useMemo(() => selectVisibleTasks({ ...useStore.getState(), currentUser: me }, me), [me, allProjects, allTasks]);
+  const visibleProjectIds = useMemo(() => new Set(projects.map((p) => p.id)), [projects]);
+  // Bug13修复: 也显示无projectId的活动（如模板更新）
+  const visibleActivities = useMemo(() => activities.filter((a) => !a.projectId || visibleProjectIds.has(a.projectId)), [activities, visibleProjectIds]);
 
   const overdueTasks = tasks.filter((t) => t.status !== 'DONE' && daysFromNow(t.dueAt) < 0);
   const dueSoonTasks = tasks.filter((t) => t.status !== 'DONE' && daysFromNow(t.dueAt) >= 0 && daysFromNow(t.dueAt) <= 3);
@@ -49,8 +55,17 @@ export function DashboardPage() {
   const doneTasks = tasks.filter((t) => t.status === 'DONE');
   const highRisk = tasks.filter((t) => t.riskLevel === 'HIGH' && t.status !== 'DONE');
   const missingEvidence = tasks.filter(
-    (t) => t.status !== 'DONE' && t.evidenceUploaded.length < t.requiredEvidence.length,
+    (t) => t.status !== 'DONE' && getMissingEvidence(t.requiredEvidence, t.evidenceUploaded, allAttachments).length > 0,
   );
+  const regulatoryTasks = tasks.filter((t) => t.regulatoryDeadline);
+  const regulatoryDueSoon = regulatoryTasks.filter((t) => {
+    const days = getDaysUntilDeadline(t.regulatoryDeadline!);
+    return days >= 0 && days <= 14;
+  });
+  const regulatoryOverdue = regulatoryTasks.filter((t) => {
+    const days = getDaysUntilDeadline(t.regulatoryDeadline!);
+    return days < 0;
+  });
 
   // 今日高风险：合并逾期 + 临近 + 待复核
   const todayCritical = useMemo(() => {
@@ -67,7 +82,7 @@ export function DashboardPage() {
     <>
       <PageHeader
         title={`你好，${me.name.split('')[0]}老师`}
-        subtitle="这是 PV智枢 的项目驾驶舱。今天有 3 个高风险任务、2 项待复核、1 条证据缺失需要你关注。"
+        subtitle={`这是 PV智枢 的项目驾驶舱。今天有 ${highRisk.length} 个高风险任务、${inReviewTasks.length} 项待复核、${missingEvidence.length} 条证据缺失需要你关注。`}
         meta={[
           <RoleChip key="role" role={me.role} />,
           <Chip key="org" tone="neutral">
@@ -80,9 +95,11 @@ export function DashboardPage() {
         actions={
           roleCan(me.role, 'create_project') ? (
             <>
-              <button className="btn btn-ghost" onClick={() => navigate('/audit')}>
-                <ShieldAlert className="w-3.5 h-3.5" /> 审计中心
-              </button>
+              {roleCan(me.role, 'view_audit') && (
+                <button className="btn btn-ghost" onClick={() => navigate('/audit')}>
+                  <ShieldAlert className="w-3.5 h-3.5" /> 审计中心
+                </button>
+              )}
               <button className="btn btn-primary" onClick={() => navigate('/projects/new')}>
                 <ClipboardList className="w-3.5 h-3.5" /> 新建项目
               </button>
@@ -119,11 +136,11 @@ export function DashboardPage() {
           tone="amber"
         />
         <KpiCard
-          label="证据缺失"
-          value={missingEvidence.length}
-          hint={missingEvidence.length > 0 ? '影响审计包完整性' : '证据齐备'}
-          icon={FileText}
-          tone={missingEvidence.length > 0 ? 'amber' : 'teal'}
+          label="法规截止"
+          value={regulatoryDueSoon.length}
+          hint={regulatoryDueSoon.length > 0 ? `${regulatoryOverdue.length} 个已逾期` : '全部合规'}
+          icon={FileCheck}
+          tone={regulatoryOverdue.length > 0 ? 'danger' : regulatoryDueSoon.length > 0 ? 'amber' : 'teal'}
         />
       </div>
 
@@ -288,6 +305,12 @@ export function DashboardPage() {
             onOpen={(id) => navigate(`/tasks/${id}`)}
           />
 
+          <RegulatoryDeadlinePanel
+            regulatoryDueSoon={regulatoryDueSoon}
+            regulatoryOverdue={regulatoryOverdue}
+            onOpen={(id) => navigate(`/tasks/${id}`)}
+          />
+
           <section className="surface p-4">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-7 h-7 rounded-lg bg-cobalt-50 flex items-center justify-center">
@@ -310,7 +333,7 @@ export function DashboardPage() {
             </div>
           </section>
 
-          <RecentActivity logs={auditLogs} users={users} onOpen={(id) => navigate(`/tasks/${id}`)} />
+          <RecentActivityPanel activities={visibleActivities} users={users} projects={projects} onOpen={(id) => navigate(`/tasks/${id}`)} />
         </div>
       </div>
     </>
@@ -453,38 +476,111 @@ function RiskPanel({
   );
 }
 
-function RecentActivity({ logs, users, onOpen }: { logs: ReturnType<typeof useStore.getState>['auditLogs']; users: User[]; onOpen: (id: string) => void }) {
-  const recent = logs.slice(0, 6);
+function RegulatoryDeadlinePanel({
+  regulatoryDueSoon,
+  regulatoryOverdue,
+  onOpen,
+}: {
+  regulatoryDueSoon: Task[];
+  regulatoryOverdue: Task[];
+  onOpen: (id: string) => void;
+}) {
+  const allItems = [...regulatoryOverdue, ...regulatoryDueSoon].slice(0, 5);
   return (
     <section className="surface p-4">
       <div className="flex items-center justify-between mb-3.5">
-        <h2 className="font-display text-[14.5px] font-semibold">最近操作</h2>
+        <h2 className="font-display text-[14.5px] font-semibold flex items-center gap-2">
+          <FileCheck className="w-3.5 h-3.5 text-cobalt-600" />
+          法规截止提醒
+        </h2>
+        <span className="text-[11px] text-ink-500 font-mono">
+          {regulatoryOverdue.length} 逾期 / {regulatoryDueSoon.length} 即将
+        </span>
+      </div>
+      {allItems.length === 0 ? (
+        <div className="text-center py-6 text-[12px] text-ink-500">
+          <CheckCircle2 className="w-6 h-6 text-teal-600 mx-auto mb-2" />
+          暂无法规截止任务
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {allItems.map((t) => {
+            const days = getDaysUntilDeadline(t.regulatoryDeadline!);
+            const isOverdue = days < 0;
+            return (
+              <li key={t.id}>
+                <button
+                  onClick={() => onOpen(t.id)}
+                  className="w-full text-left p-3 rounded-lg border border-ink-900/5 hover:border-cobalt-500/30 hover:bg-cobalt-50/30 transition-all"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[12.5px] font-semibold text-ink-800 truncate">{t.title}</span>
+                    <span className={cn('text-[11px] font-mono font-semibold', isOverdue ? 'text-danger-600' : 'text-amber-700')}>
+                      {isOverdue ? `逾期 ${Math.abs(days)}d` : `剩 ${days}d`}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[11px] text-ink-500">
+                    <span className="truncate">{t.product}</span>
+                    <span className="font-mono">{formatDate(t.regulatoryDeadline!)}</span>
+                  </div>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function RecentActivityPanel({
+  activities,
+  users,
+  projects,
+  onOpen,
+}: {
+  activities: ReturnType<typeof useStore.getState>['activities'];
+  users: User[];
+  projects: ReturnType<typeof selectVisibleProjects>;
+  onOpen: (id: string) => void;
+}) {
+  const recent = activities.slice(0, 20);
+  return (
+    <section className="surface p-4">
+      <div className="flex items-center justify-between mb-3.5">
+        <h2 className="font-display text-[14.5px] font-semibold">最近活动</h2>
         <Link to="/audit" className="text-[11px] text-cobalt-600 hover:underline">
           全部 →
         </Link>
       </div>
       <ol className="space-y-2.5">
-        {recent.map((l, i) => {
-          const actor = users.find((u) => u.id === l.actorId);
+        {recent.map((act, i) => {
+          const actor = users.find((u) => u.id === act.userId);
+          const project = projects.find((p) => p.id === act.projectId);
           return (
-            <li key={l.id} className="flex gap-2.5">
+            <li key={act.id} className="flex gap-2.5">
               <div className="flex flex-col items-center">
-                <Avatar userId={l.actorId} size={22} />
+                <Avatar userId={act.userId} size={22} />
                 {i < recent.length - 1 && <div className="w-px flex-1 bg-ink-900/10 mt-1.5" />}
               </div>
               <div className="flex-1 min-w-0 pb-1">
                 <div className="text-[12px] text-ink-800 leading-snug">
-                  <span className="font-semibold">{actor?.name ?? '系统'}</span> {l.action}
+                  <span className="font-semibold">{actor?.name ?? '系统'}</span> {act.content}
                 </div>
                 <div className="text-[10.5px] text-ink-500 font-mono mt-0.5">
-                  {formatDate(l.createdAt, true)} · {relativeFromNow(l.createdAt)}
+                  {formatDate(act.createdAt, true)} · {relativeFromNow(act.createdAt)}
                 </div>
-                {l.objectType === 'TASK' && (
+                {project && (
+                  <div className="text-[11px] text-cobalt-600 mt-0.5 truncate">
+                    {project.name}
+                  </div>
+                )}
+                {act.taskId && (
                   <button
-                    onClick={() => onOpen(l.objectId)}
+                    onClick={() => onOpen(act.taskId)}
                     className="text-[11px] text-cobalt-600 hover:underline mt-0.5"
                   >
-                    查看对象 →
+                    查看任务 →
                   </button>
                 )}
               </div>
