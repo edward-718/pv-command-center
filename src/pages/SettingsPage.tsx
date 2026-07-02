@@ -26,6 +26,13 @@ export function SettingsPage() {
 
   const roles: Role[] = ['PM', 'PROCESSOR', 'PHYSICIAN', 'QA', 'VENDOR', 'ADMIN'];
 
+  const handleReset = () => {
+    if (window.confirm('确定要重置所有演示数据并退出吗？此操作不可撤销。')) {
+      resetData();
+      logout();
+    }
+  };
+
   return (
     <>
       <PageHeader
@@ -105,10 +112,7 @@ export function SettingsPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
-                resetData();
-                logout();
-              }}
+              onClick={handleReset}
               className="btn btn-danger text-[12px]"
             >
               <RotateCcw className="w-3.5 h-3.5" /> 重置演示数据并退出
