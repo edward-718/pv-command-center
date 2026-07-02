@@ -31,6 +31,18 @@ function loadFile<T>(fileName: string, defaultValue: T): T {
   }
 }
 
+function ensureArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function ensureMap(value: unknown): Map<string, unknown> {
+  if (value instanceof Map) return value;
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return new Map(Object.entries(value));
+  }
+  return new Map();
+}
+
 function saveFile(fileName: string, data: unknown): void {
   const filePath = path.join(DATA_DIR, fileName);
   const tempPath = `${filePath}.tmp`;
@@ -52,16 +64,16 @@ export type StoreData = {
 };
 
 const store: StoreData = {
-  users: loadFile(FILES.users, []),
-  projects: loadFile(FILES.projects, []),
-  tasks: new Map(Object.entries(loadFile(FILES.tasks, {}))),
-  comments: loadFile(FILES.comments, []),
-  attachments: loadFile(FILES.attachments, []),
-  reviews: loadFile(FILES.reviews, []),
-  auditLogs: loadFile(FILES.auditLogs, []),
-  notifications: loadFile(FILES.notifications, []),
-  templates: loadFile(FILES.templates, []),
-  aiDrafts: loadFile(FILES.aiDrafts, []),
+  users: ensureArray(loadFile(FILES.users, [])),
+  projects: ensureArray(loadFile(FILES.projects, [])),
+  tasks: ensureMap(loadFile(FILES.tasks, {})),
+  comments: ensureArray(loadFile(FILES.comments, [])),
+  attachments: ensureArray(loadFile(FILES.attachments, [])),
+  reviews: ensureArray(loadFile(FILES.reviews, [])),
+  auditLogs: ensureArray(loadFile(FILES.auditLogs, [])),
+  notifications: ensureArray(loadFile(FILES.notifications, [])),
+  templates: ensureArray(loadFile(FILES.templates, [])),
+  aiDrafts: ensureArray(loadFile(FILES.aiDrafts, [])),
 };
 
 function saveAll(): void {
@@ -81,7 +93,15 @@ let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
 function debouncedSave(): void {
   if (saveTimeout) clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(saveAll, 100);
+  saveTimeout = setTimeout(saveAll, 200);
+}
+
+function saveImmediate(): void {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+  saveAll();
 }
 
 function withSave<T>(fn: () => T): T {
@@ -96,6 +116,10 @@ export function getStore(): StoreData {
 
 export function saveStore(): void {
   debouncedSave();
+}
+
+export function saveStoreImmediate(): void {
+  saveImmediate();
 }
 
 export function updateUsers(data: unknown[]): void {
@@ -121,6 +145,7 @@ export function addAuditLog(log: unknown): void {
 export const pvStore = {
   ...store,
   save: debouncedSave,
+  saveImmediate,
   withSave,
   updateUsers,
   updateProjects,
