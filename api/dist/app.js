@@ -7,6 +7,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
 import authRoutes from './routes/auth.js';
 import tasksRoutes from './routes/tasks.js';
 import projectsRoutes from './routes/projects.js';
@@ -31,10 +32,16 @@ app.use(cors({
 // 请求体大小限制
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// 请求 ID 追踪
+app.use((req, res, next) => {
+    req.requestId = crypto.randomUUID();
+    res.setHeader('X-Request-Id', req.requestId);
+    next();
+});
 // 请求日志（简单记录）
 app.use((req, _res, next) => {
     const time = new Date().toISOString();
-    console.log(`[${time}] ${req.method} ${req.path}`);
+    console.log(`[${time}] [${req.requestId}] ${req.method} ${req.path}`);
     next();
 });
 // === API Routes ===
@@ -54,12 +61,13 @@ app.get('/api/health', (_req, res) => {
 // === 错误处理 ===
 // 404 handler
 app.use((_req, res) => {
-    res.status(404).json({ success: false, error: 'API not found', code: 'NOT_FOUND' });
+    res.status(404).json({ code: 404, message: 'API not found' });
 });
 // 全局错误处理
-app.use((err, _req, res, _next) => {
-    console.error(`[ERROR] ${err.message}`);
-    res.status(500).json({ success: false, error: 'Internal server error', code: 'INTERNAL_ERROR' });
+app.use((err, req, res, _next) => {
+    console.error(`[ERROR] [${req.requestId}] ${err.message}`);
+    console.error(err.stack);
+    res.status(500).json({ code: 500, message: 'Internal server error' });
 });
 export function startServer(app, port) {
     return app.listen(port, () => {
