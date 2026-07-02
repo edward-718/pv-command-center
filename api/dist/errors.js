@@ -31,3 +31,15 @@ export function handleError(error) {
     }
     return { code: ErrorCodes.INTERNAL_ERROR, message: 'Unknown error', statusCode: 500 };
 }
+export function success(data, message) {
+    const res = { code: 0, data };
+    if (message)
+        res.message = message;
+    return res;
+}
+export function error(code, message, data) {
+    const res = { code, message };
+    if (data !== undefined)
+        res.data = data;
+    return res;
+}
