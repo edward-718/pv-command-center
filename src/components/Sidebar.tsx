@@ -8,10 +8,11 @@ import {
   Users2,
   Settings2,
   Activity,
+  Bell,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useStore, roleCan } from '@/store/useStore';
+import { useStore, roleCan, selectVisibleProjects, selectVisibleTasks } from '@/store/useStore';
 import type { Role } from '@/types';
 
 type NavItem = {
@@ -27,18 +28,39 @@ export function Sidebar() {
   const tasks = useStore((s) => s.tasks);
   const projects = useStore((s) => s.projects);
   const auditLogs = useStore((s) => s.auditLogs);
+  const attachments = useStore((s) => s.attachments);
+  const notifications = useStore((s) => s.notifications);
   const location = useLocation();
   if (!me) return null;
 
-  const overdue = tasks.filter((t) => t.status !== 'DONE' && new Date(t.dueAt).getTime() < Date.now()).length;
-  const inReview = tasks.filter((t) => t.status === 'IN_REVIEW').length;
-  const activeProjects = projects.filter((p) => p.status === 'ACTIVE').length;
+  // 使用可见性过滤器，确保统计数据只包含用户有权限查看的任务和项目
+  const visibleTasks = selectVisibleTasks({ ...useStore.getState(), currentUser: me }, me);
+  const visibleProjects = selectVisibleProjects({ ...useStore.getState(), currentUser: me }, me);
+  const visibleProjectIds = new Set(visibleProjects.map((p) => p.id));
+  const visibleTaskIds = new Set(visibleTasks.map((t) => t.id));
+  const visibleAuditLogs = auditLogs.filter((l) => {
+    if (l.objectType === 'PROJECT') return visibleProjectIds.has(l.objectId);
+    if (l.objectType === 'TASK') return visibleTaskIds.has(l.objectId);
+    if (l.objectType === 'REVIEW') return visibleTaskIds.has(l.objectId);
+    if (l.objectType === 'ATTACHMENT') {
+      const att = attachments.find((a) => a.id === l.objectId);
+      return att ? visibleTaskIds.has(att.taskId) : false;
+    }
+    if (l.objectType === 'TEMPLATE') return me.role === 'PM' || me.role === 'ADMIN' || me.role === 'PROCESSOR';
+    if (l.objectType === 'EXPORT') return roleCan(me.role, 'audit_export');
+    return false;
+  });
+  const overdue = visibleTasks.filter((t) => t.status !== 'DONE' && new Date(t.dueAt).getTime() < Date.now()).length;
+  const inReview = visibleTasks.filter((t) => t.status === 'IN_REVIEW').length;
+  const activeProjects = visibleProjects.filter((p) => p.status === 'ACTIVE').length;
+  const unreadNotifications = notifications.filter((n) => n.userId === me.id && n.status === 'UNREAD').length;
 
   const items: NavItem[] = [
     { to: '/', label: '项目驾驶舱', icon: LayoutDashboard, badge: overdue || undefined, visibleFor: 'all' },
     { to: '/projects', label: '项目管理', icon: FolderKanban, badge: activeProjects, visibleFor: 'all' },
+    { to: '/notifications', label: '通知中心', icon: Bell, badge: unreadNotifications || undefined, visibleFor: 'all' },
     { to: '/templates', label: '项目模板', icon: FileStack, visibleFor: ['PM', 'ADMIN', 'PROCESSOR'] },
-    { to: '/audit', label: '审计中心', icon: ShieldCheck, badge: auditLogs.length, visibleFor: ['PM', 'QA', 'ADMIN'] },
+    { to: '/audit', label: '审计中心', icon: ShieldCheck, badge: visibleAuditLogs.length, visibleFor: ['PM', 'QA', 'ADMIN'] },
     { to: '/ai', label: 'AI 助手', icon: Sparkles, visibleFor: 'all' },
     { to: '/vendors', label: '供应商空间', icon: Users2, visibleFor: ['PM', 'VENDOR', 'ADMIN'] },
     { to: '/settings', label: '系统配置', icon: Settings2, visibleFor: ['ADMIN'] },
