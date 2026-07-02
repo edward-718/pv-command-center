@@ -7,6 +7,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
 import authRoutes from './routes/auth.js';
 import tasksRoutes from './routes/tasks.js';
 import projectsRoutes from './routes/projects.js';
@@ -25,6 +26,10 @@ dotenv.config();
 const app: express.Application = express();
 const PORT = process.env.PORT || 3001;
 
+interface RequestWithId extends Request {
+  requestId?: string;
+}
+
 // === 安全中间件 ===
 // CORS 配置
 app.use(cors({
@@ -37,10 +42,17 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// 请求 ID 追踪
+app.use((req: RequestWithId, res: Response, next: NextFunction) => {
+  req.requestId = crypto.randomUUID();
+  res.setHeader('X-Request-Id', req.requestId);
+  next();
+});
+
 // 请求日志（简单记录）
-app.use((req: Request, _res: Response, next: NextFunction) => {
+app.use((req: RequestWithId, _res: Response, next: NextFunction) => {
   const time = new Date().toISOString();
-  console.log(`[${time}] ${req.method} ${req.path}`);
+  console.log(`[${time}] [${req.requestId}] ${req.method} ${req.path}`);
   next();
 });
 
@@ -63,13 +75,14 @@ app.get('/api/health', (_req: Request, res: Response) => {
 // === 错误处理 ===
 // 404 handler
 app.use((_req: Request, res: Response) => {
-  res.status(404).json({ success: false, error: 'API not found', code: 'NOT_FOUND' });
+  res.status(404).json({ code: 404, message: 'API not found' });
 });
 
 // 全局错误处理
-app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.error(`[ERROR] ${err.message}`);
-  res.status(500).json({ success: false, error: 'Internal server error', code: 'INTERNAL_ERROR' });
+app.use((err: Error, req: RequestWithId, res: Response, _next: NextFunction) => {
+  console.error(`[ERROR] [${req.requestId}] ${err.message}`);
+  console.error(err.stack);
+  res.status(500).json({ code: 500, message: 'Internal server error' });
 });
 
 export function startServer(app: express.Application, port: number | string) {
