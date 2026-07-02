@@ -83,99 +83,124 @@ if (pvStore.templates.length === 0) {
     pvStore.save();
 }
 // 模板列表
-router.get('/', authenticate, (_req, res) => {
-    res.json({ code: 0, data: pvStore.templates });
+router.get('/', authenticate, async (_req, res, next) => {
+    try {
+        res.json({ code: 0, data: pvStore.templates });
+    }
+    catch (err) {
+        next(err);
+    }
 });
 // 模板详情
-router.get('/:id', authenticate, (req, res) => {
-    const tpl = pvStore.templates.find((t) => t.id === req.params.id);
-    if (!tpl)
-        return res.status(404).json({ code: 404, message: 'template not found' });
-    res.json({ code: 0, data: tpl });
+router.get('/:id', authenticate, async (req, res, next) => {
+    try {
+        const tpl = pvStore.templates.find((t) => t.id === req.params.id);
+        if (!tpl)
+            return res.status(404).json({ code: 404, message: 'template not found' });
+        res.json({ code: 0, data: tpl });
+    }
+    catch (err) {
+        next(err);
+    }
 });
 // 创建模板
-router.post('/', authenticate, requirePermission('template:update'), (req, res) => {
-    const { name, type, description, nodes, reminderThresholds } = req.body;
-    if (!name || !type || !nodes || nodes.length === 0) {
-        return res.status(400).json({ code: 400, message: 'name, type, nodes required' });
+router.post('/', authenticate, requirePermission('template:update'), async (req, res, next) => {
+    try {
+        const { name, type, description, nodes, reminderThresholds } = req.body;
+        if (!name || !type || !nodes || nodes.length === 0) {
+            return res.status(400).json({ code: 400, message: 'name, type, nodes required' });
+        }
+        const template = {
+            id: `tpl-${Date.now()}`,
+            name,
+            type,
+            description: description || '',
+            nodes: nodes.map((n, i) => ({
+                ...n,
+                id: n.id || `n${i + 1}`,
+            })),
+            reminderThresholds: reminderThresholds || [7, 3, 1],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+        pvStore.templates.unshift(template);
+        pvStore.addAuditLog({
+            id: `l-${Date.now()}`,
+            actorId: req.user?.id || 'system',
+            objectType: 'TEMPLATE',
+            objectId: template.id,
+            action: `创建模板 ${name}`,
+            before: null,
+            after: template,
+            createdAt: new Date().toISOString(),
+        });
+        pvStore.save();
+        res.json({ code: 0, data: template });
     }
-    const template = {
-        id: `tpl-${Date.now()}`,
-        name,
-        type,
-        description: description || '',
-        nodes: nodes.map((n, i) => ({
-            ...n,
-            id: n.id || `n${i + 1}`,
-        })),
-        reminderThresholds: reminderThresholds || [7, 3, 1],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    };
-    pvStore.templates.unshift(template);
-    pvStore.addAuditLog({
-        id: `l-${Date.now()}`,
-        actorId: req.user?.id || 'system',
-        objectType: 'TEMPLATE',
-        objectId: template.id,
-        action: `创建模板 ${name}`,
-        before: null,
-        after: template,
-        createdAt: new Date().toISOString(),
-    });
-    pvStore.save();
-    res.json({ code: 0, data: template });
+    catch (err) {
+        next(err);
+    }
 });
 // 更新模板
-router.put('/:id', authenticate, requirePermission('template:update'), (req, res) => {
-    const tpl = pvStore.templates.find((t) => t.id === req.params.id);
-    if (!tpl)
-        return res.status(404).json({ code: 404, message: 'template not found' });
-    const { name, description, nodes, reminderThresholds } = req.body;
-    const before = { ...tpl };
-    if (name !== undefined)
-        tpl.name = name;
-    if (description !== undefined)
-        tpl.description = description;
-    if (nodes !== undefined)
-        tpl.nodes = nodes;
-    if (reminderThresholds !== undefined)
-        tpl.reminderThresholds = reminderThresholds;
-    tpl.updatedAt = new Date().toISOString();
-    pvStore.addAuditLog({
-        id: `l-${Date.now()}`,
-        actorId: req.user?.id || 'system',
-        objectType: 'TEMPLATE',
-        objectId: tpl.id,
-        action: `更新模板`,
-        before,
-        after: tpl,
-        createdAt: new Date().toISOString(),
-    });
-    pvStore.save();
-    res.json({ code: 0, data: tpl });
+router.put('/:id', authenticate, requirePermission('template:update'), async (req, res, next) => {
+    try {
+        const tpl = pvStore.templates.find((t) => t.id === req.params.id);
+        if (!tpl)
+            return res.status(404).json({ code: 404, message: 'template not found' });
+        const { name, description, nodes, reminderThresholds } = req.body;
+        const before = { ...tpl };
+        if (name !== undefined)
+            tpl.name = name;
+        if (description !== undefined)
+            tpl.description = description;
+        if (nodes !== undefined)
+            tpl.nodes = nodes;
+        if (reminderThresholds !== undefined)
+            tpl.reminderThresholds = reminderThresholds;
+        tpl.updatedAt = new Date().toISOString();
+        pvStore.addAuditLog({
+            id: `l-${Date.now()}`,
+            actorId: req.user?.id || 'system',
+            objectType: 'TEMPLATE',
+            objectId: tpl.id,
+            action: `更新模板`,
+            before,
+            after: tpl,
+            createdAt: new Date().toISOString(),
+        });
+        pvStore.save();
+        res.json({ code: 0, data: tpl });
+    }
+    catch (err) {
+        next(err);
+    }
 });
 // 删除模板（仅 ADMIN）
-router.delete('/:id', authenticate, requirePermission('project:delete'), (req, res) => {
-    const index = pvStore.templates.findIndex((t) => t.id === req.params.id);
-    if (index === -1)
-        return res.status(404).json({ code: 404, message: 'template not found' });
-    const tpl = pvStore.templates[index];
-    if (['tpl-icsr', 'tpl-inquiry', 'tpl-capa', 'tpl-psur'].includes(tpl.id)) {
-        return res.status(400).json({ code: 400, message: 'cannot delete default template' });
+router.delete('/:id', authenticate, requirePermission('project:delete'), async (req, res, next) => {
+    try {
+        const index = pvStore.templates.findIndex((t) => t.id === req.params.id);
+        if (index === -1)
+            return res.status(404).json({ code: 404, message: 'template not found' });
+        const tpl = pvStore.templates[index];
+        if (['tpl-icsr', 'tpl-inquiry', 'tpl-capa', 'tpl-psur'].includes(tpl.id)) {
+            return res.status(400).json({ code: 400, message: 'cannot delete default template' });
+        }
+        pvStore.addAuditLog({
+            id: `l-${Date.now()}`,
+            actorId: req.user?.id || 'system',
+            objectType: 'TEMPLATE',
+            objectId: tpl.id,
+            action: `删除模板 ${tpl.name}`,
+            before: tpl,
+            after: null,
+            createdAt: new Date().toISOString(),
+        });
+        pvStore.templates.splice(index, 1);
+        pvStore.save();
+        res.json({ code: 0, data: { message: 'template deleted' } });
     }
-    pvStore.addAuditLog({
-        id: `l-${Date.now()}`,
-        actorId: req.user?.id || 'system',
-        objectType: 'TEMPLATE',
-        objectId: tpl.id,
-        action: `删除模板 ${tpl.name}`,
-        before: tpl,
-        after: null,
-        createdAt: new Date().toISOString(),
-    });
-    pvStore.templates.splice(index, 1);
-    pvStore.save();
-    res.json({ code: 0, data: { message: 'template deleted' } });
+    catch (err) {
+        next(err);
+    }
 });
 export default router;
