@@ -9,7 +9,7 @@
  * - POST /api/tasks/:id/attachments 上传附件
  * - POST /api/tasks/:id/review 复核任务
  */
-import { Router, type Request, type Response } from 'express';
+import { Router, type Request, type Response, type NextFunction } from 'express';
 import pvStore from '../store.js';
 import { authenticate, requirePermission, type AuthUser } from '../middleware/auth.js';
 import { notifyReviewResult } from '../services/notification.js';
@@ -41,143 +41,196 @@ type TransitionContext = {
 };
 
 // 任务列表
-router.get('/', authenticate, (req: Request, res: Response) => {
-  const {
-    projectId, assigneeId, reviewerId, status, priority, riskLevel,
-    startDate, endDate, search, page = '1', pageSize = '20'
-  } = req.query as Record<string, string | undefined>;
+router.get('/', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const {
+      projectId, assigneeId, reviewerId, status, priority, riskLevel,
+      startDate, endDate, search, page = '1', pageSize = '20'
+    } = req.query as Record<string, string | undefined>;
 
-  const user = req.user as AuthUser;
+    const user = req.user as AuthUser;
 
-  let list = Array.from(pvStore.tasks.values()) as Array<Record<string, unknown>>;
+    let list = Array.from(pvStore.tasks.values()) as Array<Record<string, unknown>>;
 
-  // 供应商只能看到自己负责的任务
-  if (user.role === 'VENDOR') {
-    list = list.filter((t) => t.assigneeId === user.id);
+    // 供应商只能看到自己负责的任务
+    if (user.role === 'VENDOR') {
+      list = list.filter((t) => t.assigneeId === user.id);
+    } else if (user.role !== 'ADMIN' && user.role !== 'QA') {
+      // 非 ADMIN/QA 角色的用户，只能看到自己参与项目的任务
+      const projects = pvStore.projects as Array<Record<string, unknown>>;
+      const visibleProjectIds = new Set<string>();
+
+      projects.forEach((p) => {
+        if (p.ownerId === user.id || (p.memberIds as string[])?.includes(user.id)) {
+          visibleProjectIds.add(p.id as string);
+        }
+      });
+
+      list = list.filter((t) => {
+        if (t.assigneeId === user.id) return true;
+        if (visibleProjectIds.has(t.projectId as string)) return true;
+        return false;
+      });
+    }
+
+    if (projectId) list = list.filter((t) => t.projectId === projectId);
+    if (assigneeId) list = list.filter((t) => t.assigneeId === assigneeId);
+    if (reviewerId) list = list.filter((t) => t.reviewerId === reviewerId);
+    if (status) list = list.filter((t) => t.status === status);
+    if (priority) list = list.filter((t) => t.priority === priority);
+    if (riskLevel) list = list.filter((t) => t.riskLevel === riskLevel);
+    if (startDate) list = list.filter((t) => new Date(t.createdAt as string) >= new Date(startDate));
+    if (endDate) list = list.filter((t) => new Date(t.createdAt as string) <= new Date(endDate));
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter((t) =>
+        (t.title as string).toLowerCase().includes(q) ||
+        (t.description as string)?.toLowerCase().includes(q) ||
+        (t.caseId as string)?.toLowerCase().includes(q)
+      );
+    }
+
+    list.sort((a, b) => new Date(b.updatedAt as string).getTime() - new Date(a.updatedAt as string).getTime());
+
+    const total = list.length;
+    const p = parseInt(page, 10);
+    const ps = parseInt(pageSize, 10);
+
+    // 分页参数校验
+    if (isNaN(p) || p < 1) {
+      return res.status(400).json({ code: 400, message: 'page must be a positive integer' });
+    }
+    if (isNaN(ps) || ps < 1 || ps > 100) {
+      return res.status(400).json({ code: 400, message: 'pageSize must be between 1 and 100' });
+    }
+
+    const start = (p - 1) * ps;
+
+    res.json({
+      code: 0,
+      data: {
+        items: list.slice(start, start + ps),
+        total,
+        page: p,
+        pageSize: ps,
+        totalPages: Math.ceil(total / ps),
+      },
+    });
+  } catch (err) {
+    next(err);
   }
-
-  if (projectId) list = list.filter((t) => t.projectId === projectId);
-  if (assigneeId) list = list.filter((t) => t.assigneeId === assigneeId);
-  if (reviewerId) list = list.filter((t) => t.reviewerId === reviewerId);
-  if (status) list = list.filter((t) => t.status === status);
-  if (priority) list = list.filter((t) => t.priority === priority);
-  if (riskLevel) list = list.filter((t) => t.riskLevel === riskLevel);
-  if (startDate) list = list.filter((t) => new Date(t.createdAt as string) >= new Date(startDate));
-  if (endDate) list = list.filter((t) => new Date(t.createdAt as string) <= new Date(endDate));
-  if (search) {
-    const q = search.toLowerCase();
-    list = list.filter((t) =>
-      (t.title as string).toLowerCase().includes(q) ||
-      (t.description as string)?.toLowerCase().includes(q) ||
-      (t.caseId as string)?.toLowerCase().includes(q)
-    );
-  }
-
-  list.sort((a, b) => new Date(b.updatedAt as string).getTime() - new Date(a.updatedAt as string).getTime());
-
-  const total = list.length;
-  const p = parseInt(page, 10);
-  const ps = parseInt(pageSize, 10);
-  const start = (p - 1) * ps;
-
-  res.json({
-    code: 0,
-    data: {
-      items: list.slice(start, start + ps),
-      total,
-      page: p,
-      pageSize: ps,
-      totalPages: Math.ceil(total / ps),
-    },
-  });
 });
 
 // 任务详情 - 添加证据状态
-router.get('/:id', authenticate, (req: Request, res: Response) => {
-  const task = pvStore.tasks.get(req.params.id) as TaskRecord | undefined;
-  if (!task) return res.status(404).json({ code: 404, message: 'task not found' });
+router.get('/:id', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const task = pvStore.tasks.get(req.params.id) as TaskRecord | undefined;
+    if (!task) return res.status(404).json({ code: 404, message: 'task not found' });
 
-  const taskId = req.params.id;
-  const comments = (pvStore.comments as Array<Record<string, unknown>>).filter((c) => c.taskId === taskId);
-  const attachments = (pvStore.attachments as Array<Record<string, unknown>>).filter((a) => a.taskId === taskId && !(a as Record<string, unknown>).isDeleted);
-  const reviews = (pvStore.reviews as Array<Record<string, unknown>>).filter((r) => r.taskId === taskId);
-  const auditLogs = (pvStore.auditLogs as Array<Record<string, unknown>>)
-    .filter((l) => l.objectType === 'TASK' && l.objectId === taskId)
-    .slice(0, 20);
+    const taskId = req.params.id;
+    const comments = (pvStore.comments as Array<Record<string, unknown>>).filter((c) => c.taskId === taskId);
+    const attachments = (pvStore.attachments as Array<Record<string, unknown>>).filter((a) => a.taskId === taskId && !(a as Record<string, unknown>).isDeleted);
+    const reviews = (pvStore.reviews as Array<Record<string, unknown>>).filter((r) => r.taskId === taskId);
+    const auditLogs = (pvStore.auditLogs as Array<Record<string, unknown>>)
+      .filter((l) => l.objectType === 'TASK' && l.objectId === taskId)
+      .slice(0, 20);
 
-  // 计算证据完整度
-  const requiredEvidence = (task.requiredEvidence as string[]) || [];
-  const evidenceUploaded = (task.evidenceUploaded as string[]) || [];
-  const evidenceStatus = requiredEvidence.map((e) => ({
-    key: e,
-    uploaded: evidenceUploaded.includes(e),
-    file: attachments.find((a) => (a as Record<string, unknown>).evidenceKey === e),
-  }));
+    // 计算证据完整度
+    const requiredEvidence = (task.requiredEvidence as string[]) || [];
+    const evidenceUploaded = (task.evidenceUploaded as string[]) || [];
+    const evidenceStatus = requiredEvidence.map((e) => ({
+      key: e,
+      uploaded: evidenceUploaded.includes(e),
+      file: attachments.find((a) => (a as Record<string, unknown>).evidenceKey === e),
+    }));
 
-  res.json({
-    code: 0,
-    data: {
-      ...task,
-      comments,
-      attachments,
-      reviews,
-      recentAuditLogs: auditLogs,
-      evidenceStatus,
-      evidenceCompleteness: requiredEvidence.length > 0
-        ? Math.round((evidenceUploaded.length / requiredEvidence.length) * 100)
-        : 100,
-    },
-  });
+    res.json({
+      code: 0,
+      data: {
+        ...task,
+        comments,
+        attachments,
+        reviews,
+        recentAuditLogs: auditLogs,
+        evidenceStatus,
+        evidenceCompleteness: requiredEvidence.length > 0
+          ? Math.round((requiredEvidence.filter((e) => evidenceUploaded.includes(e)).length / requiredEvidence.length) * 100)
+          : 100,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // 创建任务
-router.post('/', authenticate, requirePermission('task:update'), (req: Request, res: Response) => {
-  const { projectId, title, description, assigneeId, reviewerId, priority, riskLevel, dueAt, type, caseId, requiredEvidence } = req.body as Record<string, unknown>;
+router.post('/', authenticate, requirePermission('task:update'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { projectId, title, description, assigneeId, reviewerId, priority, riskLevel, dueAt, type, caseId, requiredEvidence } = req.body as Record<string, unknown>;
 
-  if (!projectId || !title || !dueAt) {
-    return res.status(400).json({ code: 400, message: 'projectId, title, dueAt required' });
+    if (!projectId) {
+      return res.status(400).json({ code: 400, message: 'projectId is required' });
+    }
+    if (!title || typeof title !== 'string') {
+      return res.status(400).json({ code: 400, message: 'title is required' });
+    }
+    if (title.length > 120) {
+      return res.status(400).json({ code: 400, message: 'title must be 120 characters or less' });
+    }
+    if (description !== undefined && description !== null && typeof description === 'string' && description.length > 2000) {
+      return res.status(400).json({ code: 400, message: 'description must be 2000 characters or less' });
+    }
+    if (!dueAt) {
+      return res.status(400).json({ code: 400, message: 'dueAt is required' });
+    }
+    const dueAtDate = new Date(dueAt as string);
+    if (isNaN(dueAtDate.getTime())) {
+      return res.status(400).json({ code: 400, message: 'dueAt must be a valid date' });
+    }
+
+    const user = req.user as AuthUser;
+    const task = {
+      id: `t-${Date.now()}`,
+      projectId,
+      title,
+      description: description || '',
+      type: type || 'DEFAULT',
+      status: 'NOT_STARTED',
+      priority: priority || 'P2',
+      riskLevel: riskLevel || 'MEDIUM',
+      assigneeId: assigneeId || null,
+      reviewerId: reviewerId || null,
+      dueAt: dueAtDate.toISOString(),
+      caseId: caseId || null,
+      requiredEvidence: requiredEvidence || [],
+      evidenceUploaded: [],
+      severity: null,
+      seriousness: null,
+      dayZero: null,
+      medicalOpinion: null,
+      followUpStatus: 'NONE',
+      submitNote: null,
+      version: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    pvStore.tasks.set(task.id, task);
+    pvStore.addAuditLog({
+      id: `l-${Date.now()}`,
+      actorId: user.id,
+      objectType: 'TASK',
+      objectId: task.id,
+      action: `创建任务`,
+      before: null,
+      after: task,
+      createdAt: new Date().toISOString(),
+    });
+    pvStore.save();
+    res.json({ code: 0, data: task });
+  } catch (err) {
+    next(err);
   }
-
-  const user = req.user as AuthUser;
-  const task = {
-    id: `t-${Date.now()}`,
-    projectId,
-    title,
-    description: description || '',
-    type: type || 'DEFAULT',
-    status: 'NOT_STARTED',
-    priority: priority || 'P2',
-    riskLevel: riskLevel || 'MEDIUM',
-    assigneeId: assigneeId || null,
-    reviewerId: reviewerId || null,
-    dueAt,
-    caseId: caseId || null,
-    requiredEvidence: requiredEvidence || [],
-    evidenceUploaded: [],
-    severity: null,
-    seriousness: null,
-    dayZero: null,
-    medicalOpinion: null,
-    followUpStatus: 'NONE',
-    submitNote: null,
-    version: 1, // 乐观锁版本号
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-
-  pvStore.tasks.set(task.id, task);
-  pvStore.addAuditLog({
-    id: `l-${Date.now()}`,
-    actorId: user.id,
-    objectType: 'TASK',
-    objectId: task.id,
-    action: `创建任务`,
-    before: null,
-    after: task,
-    createdAt: new Date().toISOString(),
-  });
-  pvStore.save();
-  res.json({ code: 0, data: task });
 });
 
 /**
@@ -197,244 +250,313 @@ function validateEvidence(task: Record<string, unknown>): { valid: boolean; miss
 }
 
 // 状态流转 - 添加证据校验和乐观锁
-router.patch('/:id/status', authenticate, (req: Request, res: Response) => {
-  const task = pvStore.tasks.get(req.params.id) as Record<string, unknown> | undefined;
-  if (!task) return res.status(404).json({ code: 404, message: 'task not found' });
+router.patch('/:id/status', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const task = pvStore.tasks.get(req.params.id) as Record<string, unknown> | undefined;
+    if (!task) return res.status(404).json({ code: 404, message: 'task not found' });
 
-  const user = req.user as AuthUser;
-  const { status: newStatus, submitNote, reviewNote, supplementNote, reason, expectedVersion } = req.body as TransitionContext & { expectedVersion?: number };
+    const user = req.user as AuthUser;
+    const { status: newStatus, submitNote, reviewNote, supplementNote, reason, expectedVersion } = req.body as TransitionContext & { expectedVersion?: number };
 
-  // 乐观锁检查
-  if (expectedVersion !== undefined && task.version !== expectedVersion) {
-    return res.status(409).json({
-      code: 409,
-      message: 'conflict: task has been modified by another user',
-      currentVersion: task.version,
-    });
-  }
-
-  const currentStatus = task.status as string;
-  const transition = ALLOWED_TRANSITIONS[currentStatus];
-
-  if (!transition || !transition.to.includes(newStatus)) {
-    return res.status(400).json({
-      code: 400,
-      message: `invalid status transition from ${currentStatus} to ${newStatus}`,
-      allowed: transition?.to || [],
-    });
-  }
-
-  // 检查必填字段
-  if (transition.requiredFields) {
-    for (const field of transition.requiredFields) {
-      if (field === 'submitNote' && !submitNote) {
-        return res.status(400).json({ code: 400, message: 'submitNote is required when submitting for review' });
-      }
-      if (field === 'reviewNote' && !reviewNote && newStatus === 'NEEDS_INFO') {
-        return res.status(400).json({ code: 400, message: 'reviewNote (return reason) is required when returning task' });
-      }
-      if (field === 'supplementNote' && !supplementNote) {
-        return res.status(400).json({ code: 400, message: 'supplementNote is required when re-submitting' });
-      }
-    }
-  }
-
-  // 证据校验：提交复核前必须上传所有必填证据
-  if (currentStatus === 'IN_PROGRESS' && newStatus === 'IN_REVIEW') {
-    const evidenceCheck = validateEvidence(task);
-    if (!evidenceCheck.valid) {
-      return res.status(400).json({
-        code: 400,
-        message: 'evidence incomplete, missing required evidence',
-        missingEvidence: evidenceCheck.missing,
+    // 乐观锁检查
+    if (expectedVersion !== undefined && task.version !== expectedVersion) {
+      return res.status(409).json({
+        code: 409,
+        message: 'conflict: task has been modified by another user',
+        currentVersion: task.version,
       });
     }
-  }
 
-  const before = { ...task };
+    const currentStatus = task.status as string;
+    const transition = ALLOWED_TRANSITIONS[currentStatus];
 
-  // 特殊处理：复核退回需要审查权限
-  if (newStatus === 'NEEDS_INFO' && currentStatus === 'IN_REVIEW') {
-    if (!['PM', 'PHYSICIAN', 'QA', 'ADMIN'].includes(user.role)) {
-      return res.status(403).json({ code: 403, message: 'only reviewers can return tasks' });
+    if (!transition || !transition.to.includes(newStatus)) {
+      return res.status(400).json({
+        code: 400,
+        message: `invalid status transition from ${currentStatus} to ${newStatus}`,
+        allowed: transition?.to || [],
+      });
     }
-  }
 
-  // 紧急通道：PM/QA 可以直接将 IN_PROGRESS 改为 DONE
-  if (currentStatus === 'IN_PROGRESS' && newStatus === 'DONE') {
-    if (!['PM', 'QA', 'ADMIN'].includes(user.role)) {
-      return res.status(403).json({ code: 403, message: 'only PM/QA can complete task directly' });
+    // 检查必填字段
+    if (transition.requiredFields) {
+      for (const field of transition.requiredFields) {
+        if (field === 'submitNote' && !submitNote) {
+          return res.status(400).json({ code: 400, message: 'submitNote is required when submitting for review' });
+        }
+        if (field === 'reviewNote' && !reviewNote && newStatus === 'NEEDS_INFO') {
+          return res.status(400).json({ code: 400, message: 'reviewNote (return reason) is required when returning task' });
+        }
+        if (field === 'supplementNote' && !supplementNote) {
+          return res.status(400).json({ code: 400, message: 'supplementNote is required when re-submitting' });
+        }
+      }
     }
-    if (!reason) {
-      return res.status(400).json({ code: 400, message: 'reason is required for direct completion' });
+
+    // 证据校验：提交复核前必须上传所有必填证据
+    if (currentStatus === 'IN_PROGRESS' && newStatus === 'IN_REVIEW') {
+      const evidenceCheck = validateEvidence(task);
+      if (!evidenceCheck.valid) {
+        return res.status(400).json({
+          code: 400,
+          message: 'evidence incomplete, missing required evidence',
+          missingEvidence: evidenceCheck.missing,
+        });
+      }
     }
+
+    const before = { ...task };
+
+    // 特殊处理：复核退回需要审查权限
+    if (newStatus === 'NEEDS_INFO' && currentStatus === 'IN_REVIEW') {
+      if (!['PM', 'PHYSICIAN', 'QA', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ code: 403, message: 'only reviewers can return tasks' });
+      }
+    }
+
+    // 紧急通道：PM/QA 可以直接将 IN_PROGRESS 改为 DONE
+    if (currentStatus === 'IN_PROGRESS' && newStatus === 'DONE') {
+      if (!['PM', 'QA', 'ADMIN'].includes(user.role)) {
+        return res.status(403).json({ code: 403, message: 'only PM/QA can complete task directly' });
+      }
+      if (!reason) {
+        return res.status(400).json({ code: 400, message: 'reason is required for direct completion' });
+      }
+    }
+
+    task.status = newStatus;
+    task.version = (task.version as number || 1) + 1; // 乐观锁版本递增
+    task.updatedAt = new Date().toISOString();
+
+    // 记录说明
+    if (submitNote) task.submitNote = submitNote;
+    if (reviewNote) task.reviewNote = reviewNote;
+    if (supplementNote) task.supplementNote = supplementNote;
+    if (reason) task.completionReason = reason;
+
+    // 复核退回时发送通知
+    if (newStatus === 'NEEDS_INFO') {
+      notifyReviewResult(req.params.id, task.title as string, 'RETURNED', reviewNote || reason);
+    } else if (newStatus === 'DONE' && currentStatus === 'IN_REVIEW') {
+      notifyReviewResult(req.params.id, task.title as string, 'APPROVED');
+    }
+
+    pvStore.addAuditLog({
+      id: `l-${Date.now()}`,
+      actorId: user.id,
+      objectType: 'TASK',
+      objectId: task.id,
+      action: `状态变更 ${currentStatus} → ${newStatus}${reason ? `（${reason}）` : ''}`,
+      before,
+      after: task,
+      createdAt: new Date().toISOString(),
+    });
+    pvStore.save();
+    res.json({ code: 0, data: task });
+  } catch (err) {
+    next(err);
   }
-
-  task.status = newStatus;
-  task.version = (task.version as number || 1) + 1; // 乐观锁版本递增
-  task.updatedAt = new Date().toISOString();
-
-  // 记录说明
-  if (submitNote) task.submitNote = submitNote;
-  if (reviewNote) task.reviewNote = reviewNote;
-  if (supplementNote) task.supplementNote = supplementNote;
-  if (reason) task.completionReason = reason;
-
-  // 复核退回时发送通知
-  if (newStatus === 'NEEDS_INFO') {
-    notifyReviewResult(req.params.id, task.title as string, 'RETURNED', reviewNote || reason);
-  } else if (newStatus === 'DONE' && currentStatus === 'IN_REVIEW') {
-    notifyReviewResult(req.params.id, task.title as string, 'APPROVED');
-  }
-
-  pvStore.addAuditLog({
-    id: `l-${Date.now()}`,
-    actorId: user.id,
-    objectType: 'TASK',
-    objectId: task.id,
-    action: `状态变更 ${currentStatus} → ${newStatus}${reason ? `（${reason}）` : ''}`,
-    before,
-    after: task,
-    createdAt: new Date().toISOString(),
-  });
-  pvStore.save();
-  res.json({ code: 0, data: task });
 });
 
 // 分配任务
-router.patch('/:id/assign', authenticate, requirePermission('task:assign'), (req: Request, res: Response) => {
-  const task = pvStore.tasks.get(req.params.id) as Record<string, unknown> | undefined;
-  if (!task) return res.status(404).json({ code: 404, message: 'task not found' });
+router.patch('/:id/assign', authenticate, requirePermission('task:assign'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const task = pvStore.tasks.get(req.params.id) as Record<string, unknown> | undefined;
+    if (!task) return res.status(404).json({ code: 404, message: 'task not found' });
 
-  const user = req.user as AuthUser;
-  const { assigneeId, reviewerId } = req.body as { assigneeId?: string; reviewerId?: string };
-  if (!assigneeId && !reviewerId) {
-    return res.status(400).json({ code: 400, message: 'assigneeId or reviewerId required' });
+    const user = req.user as AuthUser;
+    const { assigneeId, reviewerId } = req.body as { assigneeId?: string; reviewerId?: string };
+    if (!assigneeId && !reviewerId) {
+      return res.status(400).json({ code: 400, message: 'assigneeId or reviewerId required' });
+    }
+
+    const before = { assigneeId: task.assigneeId, reviewerId: task.reviewerId };
+    if (assigneeId !== undefined) task.assigneeId = assigneeId;
+    if (reviewerId !== undefined) task.reviewerId = reviewerId;
+    task.updatedAt = new Date().toISOString();
+
+    pvStore.addAuditLog({
+      id: `l-${Date.now()}`,
+      actorId: user.id,
+      objectType: 'TASK',
+      objectId: task.id,
+      action: `任务分配变更 ${JSON.stringify(before)} → ${JSON.stringify({ assigneeId: task.assigneeId, reviewerId: task.reviewerId })}`,
+      before,
+      after: { assigneeId: task.assigneeId, reviewerId: task.reviewerId },
+      createdAt: new Date().toISOString(),
+    });
+    pvStore.save();
+    res.json({ code: 0, data: task });
+  } catch (err) {
+    next(err);
   }
-
-  const before = { assigneeId: task.assigneeId, reviewerId: task.reviewerId };
-  if (assigneeId !== undefined) task.assigneeId = assigneeId;
-  if (reviewerId !== undefined) task.reviewerId = reviewerId;
-  task.updatedAt = new Date().toISOString();
-
-  pvStore.addAuditLog({
-    id: `l-${Date.now()}`,
-    actorId: user.id,
-    objectType: 'TASK',
-    objectId: task.id,
-    action: `任务分配变更 ${JSON.stringify(before)} → ${JSON.stringify({ assigneeId: task.assigneeId, reviewerId: task.reviewerId })}`,
-    before,
-    after: { assigneeId: task.assigneeId, reviewerId: task.reviewerId },
-    createdAt: new Date().toISOString(),
-  });
-  pvStore.save();
-  res.json({ code: 0, data: task });
 });
 
 // 添加评论
-router.post('/:id/comments', authenticate, (req: Request, res: Response) => {
-  const { content, mentions = [] } = req.body as { content?: string; mentions?: string[] };
-  if (!content) return res.status(400).json({ code: 400, message: 'content required' });
+router.post('/:id/comments', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { content, mentions = [] } = req.body as { content?: string; mentions?: string[] };
+    if (!content) return res.status(400).json({ code: 400, message: 'content required' });
 
-  const user = req.user as AuthUser;
-  const c = {
-    id: `c-${Date.now()}`,
-    taskId: req.params.id,
-    authorId: user.id,
-    content,
-    mentions,
-    createdAt: new Date().toISOString(),
-  };
-  (pvStore.comments as unknown[]).unshift(c);
-  pvStore.save();
-  res.json({ code: 0, data: c });
+    const user = req.user as AuthUser;
+    const c = {
+      id: `c-${Date.now()}`,
+      taskId: req.params.id,
+      authorId: user.id,
+      content,
+      mentions,
+      createdAt: new Date().toISOString(),
+    };
+    (pvStore.comments as unknown[]).unshift(c);
+    pvStore.save();
+    res.json({ code: 0, data: c });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // 上传附件
-router.post('/:id/attachments', authenticate, requirePermission('task:upload'), (req: Request, res: Response) => {
-  const { fileName, size, type, evidenceKey } = req.body as Record<string, unknown>;
-  if (!fileName) return res.status(400).json({ code: 400, message: 'fileName required' });
+router.post('/:id/attachments', authenticate, requirePermission('task:upload'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { fileName, size, type, evidenceKey } = req.body as Record<string, unknown>;
+    if (!fileName) return res.status(400).json({ code: 400, message: 'fileName required' });
 
-  const user = req.user as AuthUser;
-  const a = {
-    id: `a-${Date.now()}`,
-    taskId: req.params.id,
-    fileName,
-    size: size ?? 0,
-    type: type ?? 'application/octet-stream',
-    version: 1,
-    uploaderId: user.id,
-    evidenceKey: evidenceKey ?? null,
-    isDeleted: false,
-    createdAt: new Date().toISOString(),
-  };
-  (pvStore.attachments as unknown[]).unshift(a);
+    const user = req.user as AuthUser;
+    const a = {
+      id: `a-${Date.now()}`,
+      taskId: req.params.id,
+      fileName,
+      size: size ?? 0,
+      type: type ?? 'application/octet-stream',
+      version: 1,
+      uploaderId: user.id,
+      evidenceKey: evidenceKey ?? null,
+      isDeleted: false,
+      createdAt: new Date().toISOString(),
+    };
+    (pvStore.attachments as unknown[]).unshift(a);
 
-  // 如果上传了证据，更新任务的 evidenceUploaded
-  if (evidenceKey) {
-    const task = pvStore.tasks.get(req.params.id) as Record<string, unknown>;
-    if (task) {
-      const uploaded = (task.evidenceUploaded as string[]) || [];
-      if (!uploaded.includes(evidenceKey as string)) {
-        task.evidenceUploaded = [...uploaded, evidenceKey];
+    // 如果上传了证据，更新任务的 evidenceUploaded
+    if (evidenceKey) {
+      const task = pvStore.tasks.get(req.params.id) as Record<string, unknown>;
+      if (task) {
+        const uploaded = (task.evidenceUploaded as string[]) || [];
+        if (!uploaded.includes(evidenceKey as string)) {
+          task.evidenceUploaded = [...uploaded, evidenceKey];
+        }
       }
     }
-  }
 
-  pvStore.addAuditLog({
-    id: `l-${Date.now()}`,
-    actorId: user.id,
-    objectType: 'ATTACHMENT',
-    objectId: a.id,
-    taskId: req.params.id,
-    action: `上传附件 ${fileName}`,
-    before: null,
-    after: a,
-    createdAt: new Date().toISOString(),
-  });
-  pvStore.save();
-  res.json({ code: 0, data: a });
+    pvStore.addAuditLog({
+      id: `l-${Date.now()}`,
+      actorId: user.id,
+      objectType: 'ATTACHMENT',
+      objectId: a.id,
+      taskId: req.params.id,
+      action: `上传附件 ${fileName}`,
+      before: null,
+      after: a,
+      createdAt: new Date().toISOString(),
+    });
+    pvStore.save();
+    res.json({ code: 0, data: a });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // 复核任务
-router.post('/:id/review', authenticate, requirePermission('task:review'), (req: Request, res: Response) => {
-  const task = pvStore.tasks.get(req.params.id) as Record<string, unknown> | undefined;
-  if (!task) return res.status(404).json({ code: 404, message: 'task not found' });
+router.post('/:id/review', authenticate, requirePermission('task:review'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const task = pvStore.tasks.get(req.params.id) as Record<string, unknown> | undefined;
+    if (!task) return res.status(404).json({ code: 404, message: 'task not found' });
 
-  const user = req.user as AuthUser;
-  const { decision, reason } = req.body as { decision?: 'APPROVED' | 'RETURNED'; reason?: string };
+    const user = req.user as AuthUser;
+    const { decision, reason } = req.body as { decision?: 'APPROVED' | 'RETURNED'; reason?: string };
 
-  if (!decision) return res.status(400).json({ code: 400, message: 'decision required' });
+    if (!decision) return res.status(400).json({ code: 400, message: 'decision required' });
 
-  if (decision === 'RETURNED' && !reason) {
-    return res.status(400).json({ code: 400, message: 'reason required when returning task' });
+    if (decision === 'RETURNED' && !reason) {
+      return res.status(400).json({ code: 400, message: 'reason required when returning task' });
+    }
+
+    const r = {
+      id: `r-${Date.now()}`,
+      taskId: req.params.id,
+      reviewerId: user.id,
+      decision,
+      reason: reason ?? null,
+      createdAt: new Date().toISOString(),
+    };
+    (pvStore.reviews as unknown[]).unshift(r);
+
+    notifyReviewResult(req.params.id, task.title as string, decision, reason);
+
+    pvStore.addAuditLog({
+      id: `l-${Date.now()}`,
+      actorId: user.id,
+      objectType: 'REVIEW',
+      objectId: r.id,
+      taskId: req.params.id,
+      action: `复核任务: ${decision}${reason ? `（${reason}）` : ''}`,
+      before: null,
+      after: r,
+      createdAt: new Date().toISOString(),
+    });
+    pvStore.save();
+    res.json({ code: 0, data: r });
+  } catch (err) {
+    next(err);
   }
+});
 
-  const r = {
-    id: `r-${Date.now()}`,
-    taskId: req.params.id,
-    reviewerId: user.id,
-    decision,
-    reason: reason ?? null,
-    createdAt: new Date().toISOString(),
-  };
-  (pvStore.reviews as unknown[]).unshift(r);
+// 附件软删除
+router.delete('/:id/attachments/:attachmentId', authenticate, requirePermission('task:upload'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const task = pvStore.tasks.get(req.params.id) as Record<string, unknown> | undefined;
+    if (!task) return res.status(404).json({ code: 404, message: 'task not found' });
 
-  notifyReviewResult(req.params.id, task.title as string, decision, reason);
+    const attachments = pvStore.attachments as Array<Record<string, unknown>>;
+    const attachment = attachments.find((a) => a.id === req.params.attachmentId && a.taskId === req.params.id);
+    if (!attachment) return res.status(404).json({ code: 404, message: 'attachment not found' });
 
-  pvStore.addAuditLog({
-    id: `l-${Date.now()}`,
-    actorId: user.id,
-    objectType: 'REVIEW',
-    objectId: r.id,
-    taskId: req.params.id,
-    action: `复核任务: ${decision}${reason ? `（${reason}）` : ''}`,
-    before: null,
-    after: r,
-    createdAt: new Date().toISOString(),
-  });
-  pvStore.save();
-  res.json({ code: 0, data: r });
+    const user = req.user as AuthUser;
+    const before = { ...attachment };
+
+    attachment.isDeleted = true;
+    attachment.deletedBy = user.id;
+    attachment.deletedAt = new Date().toISOString();
+
+    if (attachment.evidenceKey) {
+      const evidenceKey = attachment.evidenceKey as string;
+      const remainingEvidenceAttachments = attachments.filter(
+        (a) => a.taskId === req.params.id &&
+               a.evidenceKey === evidenceKey &&
+               !a.isDeleted &&
+               a.id !== attachment.id
+      );
+      if (remainingEvidenceAttachments.length === 0) {
+        const evidenceUploaded = (task.evidenceUploaded as string[]) || [];
+        task.evidenceUploaded = evidenceUploaded.filter((e) => e !== evidenceKey);
+      }
+    }
+
+    pvStore.addAuditLog({
+      id: `l-${Date.now()}`,
+      actorId: user.id,
+      objectType: 'ATTACHMENT',
+      objectId: attachment.id,
+      taskId: req.params.id,
+      action: `删除附件 ${attachment.fileName}`,
+      before,
+      after: attachment,
+      createdAt: new Date().toISOString(),
+    });
+    pvStore.save();
+    res.json({ code: 0, data: { message: 'attachment deleted' } });
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default router;
