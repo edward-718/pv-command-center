@@ -9,46 +9,61 @@ import pvStore from '../store.js';
 import { authenticate, requirePermission } from '../middleware/auth.js';
 const router = Router();
 // 获取 AI 草稿列表（需认证）
-router.get('/drafts', authenticate, (req, res) => {
-    const user = req.user;
-    const { projectId, confirmed } = req.query;
-    let list = [...pvStore.aiDrafts].filter((d) => d.authorId === user.id);
-    if (projectId)
-        list = list.filter((d) => d.projectId === projectId);
-    if (confirmed !== undefined)
-        list = list.filter((d) => d.confirmed === (confirmed === 'true'));
-    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    res.json({ code: 0, data: list });
+router.get('/drafts', authenticate, async (req, res, next) => {
+    try {
+        const user = req.user;
+        const { projectId, confirmed } = req.query;
+        let list = [...pvStore.aiDrafts].filter((d) => d.authorId === user.id);
+        if (projectId)
+            list = list.filter((d) => d.projectId === projectId);
+        if (confirmed !== undefined)
+            list = list.filter((d) => d.confirmed === (confirmed === 'true'));
+        list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        res.json({ code: 0, data: list });
+    }
+    catch (err) {
+        next(err);
+    }
 });
 // 生成 AI 草稿（需认证 + ai:generate 权限）
-router.post('/draft', authenticate, requirePermission('ai:generate'), (req, res) => {
-    const user = req.user;
-    const { projectId, kind } = req.body;
-    if (!projectId || !kind)
-        return res.status(400).json({ code: 400, message: 'projectId and kind required' });
-    const draft = {
-        id: `aig-${Date.now()}`,
-        projectId,
-        authorId: user.id,
-        kind,
-        content: generateDraftContent(kind, projectId, pvStore),
-        confirmed: false,
-        createdAt: new Date().toISOString(),
-    };
-    pvStore.aiDrafts.unshift(draft);
-    pvStore.save();
-    res.json({ code: 0, data: draft });
+router.post('/draft', authenticate, requirePermission('ai:generate'), async (req, res, next) => {
+    try {
+        const user = req.user;
+        const { projectId, kind } = req.body;
+        if (!projectId || !kind)
+            return res.status(400).json({ code: 400, message: 'projectId and kind required' });
+        const draft = {
+            id: `aig-${Date.now()}`,
+            projectId,
+            authorId: user.id,
+            kind,
+            content: generateDraftContent(kind, projectId, pvStore),
+            confirmed: false,
+            createdAt: new Date().toISOString(),
+        };
+        pvStore.aiDrafts.unshift(draft);
+        pvStore.save();
+        res.json({ code: 0, data: draft });
+    }
+    catch (err) {
+        next(err);
+    }
 });
 // 确认 AI 草稿（需认证 + ai:confirm 权限）
-router.put('/draft/:id/confirm', authenticate, requirePermission('ai:confirm'), (req, res) => {
-    const draft = pvStore.aiDrafts.find((d) => d.id === req.params.id);
-    if (!draft)
-        return res.status(404).json({ code: 404, message: 'draft not found' });
-    if (draft.confirmed)
-        return res.status(400).json({ code: 400, message: 'draft already confirmed' });
-    draft.confirmed = true;
-    pvStore.save();
-    res.json({ code: 0, data: draft });
+router.put('/draft/:id/confirm', authenticate, requirePermission('ai:confirm'), async (req, res, next) => {
+    try {
+        const draft = pvStore.aiDrafts.find((d) => d.id === req.params.id);
+        if (!draft)
+            return res.status(404).json({ code: 404, message: 'draft not found' });
+        if (draft.confirmed)
+            return res.status(400).json({ code: 400, message: 'draft already confirmed' });
+        draft.confirmed = true;
+        pvStore.save();
+        res.json({ code: 0, data: draft });
+    }
+    catch (err) {
+        next(err);
+    }
 });
 function generateDraftContent(kind, projectId, store) {
     const timestamp = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
