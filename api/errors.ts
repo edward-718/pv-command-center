@@ -35,3 +35,29 @@ export function handleError(error: unknown): { code: string; message: string; st
   }
   return { code: ErrorCodes.INTERNAL_ERROR, message: 'Unknown error', statusCode: 500 };
 }
+
+export interface SuccessResponse<T = unknown> {
+  code: 0;
+  data: T;
+  message?: string;
+}
+
+export interface ErrorResponse {
+  code: string | number;
+  message: string;
+  data?: unknown;
+}
+
+export type ApiResponse<T = unknown> = SuccessResponse<T> | ErrorResponse;
+
+export function success<T>(data: T, message?: string): SuccessResponse<T> {
+  const res: SuccessResponse<T> = { code: 0, data };
+  if (message) res.message = message;
+  return res;
+}
+
+export function error(code: string | number, message: string, data?: unknown): ErrorResponse {
+  const res: ErrorResponse = { code, message };
+  if (data !== undefined) res.data = data;
+  return res;
+}
