@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useStore, roleCan } from '@/store/useStore';
+import { useEffect, useMemo, useState } from 'react';
+import { useStore, roleCan, selectVisibleProjects } from '@/store/useStore';
 import { PageHeader } from '@/components/TopBar';
 import { Chip } from '@/components/Badge';
 import { cn, formatDate, relativeFromNow } from '@/lib/utils';
@@ -24,14 +24,28 @@ const KIND_TONE: Record<DraftKind, string> = {
 
 export function AIPage() {
   const me = useStore((s) => s.currentUser)!;
-  const projects = useStore((s) => s.projects);
+  const allProjects = useStore((s) => s.projects);
   const tasks = useStore((s) => s.tasks);
   const users = useStore((s) => s.users);
   const drafts = useStore((s) => s.aiDrafts);
   const saveDraft = useStore((s) => s.saveAIDraft);
-  const confirm = useStore((s) => s.confirmAIDraft);
+  const confirmDraft = useStore((s) => s.confirmAIDraft); // Bug18修复: 改名避免遮蔽window.confirm
+
+  const projects = useMemo(
+    () => selectVisibleProjects({ ...useStore.getState(), currentUser: me }, me),
+    [me, allProjects, tasks],
+  );
 
   const [selectedProject, setSelectedProject] = useState<Project | null>(projects[0] ?? null);
+  // Bug17修复: projects变化时同步selectedProject
+  useEffect(() => {
+    if (projects.length > 0 && !selectedProject) {
+      setSelectedProject(projects[0]);
+    } else if (selectedProject && !projects.some((p) => p.id === selectedProject.id)) {
+      setSelectedProject(projects[0] ?? null);
+    }
+  }, [projects, selectedProject]);
+
   const [kind, setKind] = useState<DraftKind>('WEEKLY');
   const [generating, setGenerating] = useState(false);
   const [preview, setPreview] = useState<string>('');
@@ -180,43 +194,45 @@ export function AIPage() {
       <section className="surface p-5 mt-5">
         <h3 className="font-display text-[15px] font-semibold mb-3">历史草稿</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-          {drafts.map((d) => {
-            const p = projects.find((x) => x.id === d.projectId);
-            return (
-              <div key={d.id} className="rounded-xl border border-ink-900/5 p-3.5">
-                <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                  <span className={cn('chip chip-mono', KIND_TONE[d.kind])}>
-                    {d.kind === 'WEEKLY' ? '周报' : d.kind === 'MEETING' ? '会议纪要' : d.kind === 'CAPA' ? 'CAPA' : '风险'}
-                  </span>
-                  <span className="text-[10.5px] text-ink-500 font-mono">
-                    {p?.code} · {formatDate(d.createdAt)} · {relativeFromNow(d.createdAt)}
-                  </span>
-                  {d.confirmed ? (
-                    <Chip tone="teal" className="ml-auto text-[10px]">
-                      <CheckCircle2 className="w-2.5 h-2.5" /> 已确认
-                    </Chip>
-                  ) : (
-                    <Chip tone="amber" className="ml-auto text-[10px]">草稿</Chip>
+          {drafts
+            .filter((d) => projects.some((p) => p.id === d.projectId))
+            .map((d) => {
+              const p = projects.find((x) => x.id === d.projectId);
+              return (
+                <div key={d.id} className="rounded-xl border border-ink-900/5 p-3.5">
+                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                    <span className={cn('chip chip-mono', KIND_TONE[d.kind])}>
+                      {d.kind === 'WEEKLY' ? '周报' : d.kind === 'MEETING' ? '会议纪要' : d.kind === 'CAPA' ? 'CAPA' : '风险'}
+                    </span>
+                    <span className="text-[10.5px] text-ink-500 font-mono">
+                      {p?.code} · {formatDate(d.createdAt)} · {relativeFromNow(d.createdAt)}
+                    </span>
+                    {d.confirmed ? (
+                      <Chip tone="teal" className="ml-auto text-[10px]">
+                        <CheckCircle2 className="w-2.5 h-2.5" /> 已确认
+                      </Chip>
+                    ) : (
+                      <Chip tone="amber" className="ml-auto text-[10px]">草稿</Chip>
+                    )}
+                  </div>
+                  <div className="text-[12px] text-ink-700 leading-relaxed line-clamp-3">
+                    {d.content.replace(/[#*`>]/g, '').slice(0, 220)}…
+                  </div>
+                  {!d.confirmed && canConfirm && (
+                    <div className="mt-2.5 flex items-center gap-1.5">
+                      <button
+                        onClick={() => confirmDraft(d.id)}
+                        className="btn btn-soft text-[11.5px] py-1"
+                      >
+                        <CheckCircle2 className="w-3 h-3" /> 确认为正式记录
+                      </button>
+                      <span className="text-[10.5px] text-ink-500">确认后写入审计日志</span>
+                    </div>
                   )}
                 </div>
-                <div className="text-[12px] text-ink-700 leading-relaxed line-clamp-3">
-                  {d.content.replace(/[#*`>]/g, '').slice(0, 220)}…
-                </div>
-                {!d.confirmed && canConfirm && (
-                  <div className="mt-2.5 flex items-center gap-1.5">
-                    <button
-                      onClick={() => confirm(d.id)}
-                      className="btn btn-soft text-[11.5px] py-1"
-                    >
-                      <CheckCircle2 className="w-3 h-3" /> 确认为正式记录
-                    </button>
-                    <span className="text-[10.5px] text-ink-500">确认后写入审计日志</span>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          {drafts.length === 0 && (
+              );
+            })}
+          {drafts.filter((d) => projects.some((p) => p.id === d.projectId)).length === 0 && (
             <div className="col-span-full text-center py-8 text-[12.5px] text-ink-500">
               暂无历史草稿
             </div>
